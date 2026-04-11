@@ -136,6 +136,7 @@ const dbToPlayer = (row,offers=[],timeline=[]) => ({
   toeflScore:row.toefl_score,university:row.university,state:row.state,
   scholarshipPct:row.scholarship_pct||0,startDate:row.start_date,contractEnd:row.contract_end,
   notes:row.notes,totalFee:row.total_fee||2700,payment1Amount:row.payment1_amount||900,payment2Amount:row.payment2_amount||1800,
+  budget:row.budget||null,fafsa:row.fafsa||false,
   payment1:{paid:row.payment1_paid,paidBy:row.payment1_paid_by,date:row.payment1_date},
   payment2:{paid:row.payment2_paid,paidBy:row.payment2_paid_by,date:row.payment2_date},
   sportData:row.sport_data?(typeof row.sport_data==="string"?JSON.parse(row.sport_data):row.sport_data):{},
@@ -151,6 +152,7 @@ const playerToDb = (p) => ({
   toefl_score:p.toeflScore||null,university:p.university,state:p.state,
   scholarship_pct:p.scholarshipPct||0,start_date:p.startDate||null,contract_end:p.contractEnd||null,notes:p.notes,
   total_fee:p.totalFee||2700,payment1_amount:p.payment1Amount||900,payment2_amount:p.payment2Amount||1800,
+  budget:p.budget||null,fafsa:p.fafsa||false,
   payment1_paid:p.payment1?.paid||false,payment1_paid_by:p.payment1?.paidBy||null,payment1_date:p.payment1?.date||null,
   payment2_paid:p.payment2?.paid||false,payment2_paid_by:p.payment2?.paidBy||null,payment2_date:p.payment2?.date||null,
   sport_data:p.sportData?JSON.stringify(p.sportData):null,
@@ -292,14 +294,14 @@ const Field = ({ l, k, form, set, type="text", opts, sd=false }) => (
 );
 
 const PlayerModal = ({ initial, onClose, onSave, agentList }) => {
-  const blank = { name:"",sport:"Fútbol",nationality:"",age:"",position:"",foot:"Derecho",height:"",weight:"",status:"Prospecto",agent:agentList[0]||"",phone:"",email:"",instagram:"",videoUrl:"",photoUrl:"",gpa:"",satScore:"",englishLevel:"B2",highSchool:"",graduationYear:"",major:"",toeflScore:"",university:"",state:"",scholarshipPct:0,startDate:"",contractEnd:"",notes:"",totalFee:2700,payment1Amount:900,payment2Amount:1800,sportData:{} };
+  const blank = { name:"",sport:"Fútbol",nationality:"",age:"",position:"",foot:"Derecho",height:"",weight:"",status:"Prospecto",agent:agentList[0]||"",phone:"",email:"",instagram:"",videoUrl:"",photoUrl:"",gpa:"",satScore:"",englishLevel:"B2",highSchool:"",graduationYear:"",major:"",toeflScore:"",university:"",state:"",scholarshipPct:0,startDate:"",contractEnd:"",notes:"",totalFee:2700,payment1Amount:900,payment2Amount:1800,budget:"",fafsa:false,sportData:{} };
   const [form,setForm]=useState(initial?{...blank,...initial,sportData:initial.sportData||{}}:blank);
   const [saving,setSaving]=useState(false);
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   const sf=SPORT_FIELDS[form.sport]||[];
   const save=async()=>{
     if(!form.name.trim()) return; setSaving(true);
-    await onSave({...form,id:form.id||undefined,age:parseInt(form.age)||0,height:parseInt(form.height)||0,weight:parseInt(form.weight)||0,gpa:parseFloat(form.gpa)||0,satScore:parseInt(form.satScore)||null,toeflScore:parseInt(form.toeflScore)||null,scholarshipPct:parseInt(form.scholarshipPct)||0,totalFee:parseFloat(form.totalFee)||2700,payment1Amount:parseFloat(form.payment1Amount)||900,payment2Amount:parseFloat(form.payment2Amount)||1800});
+    await onSave({...form,id:form.id||undefined,age:parseInt(form.age)||0,height:parseInt(form.height)||0,weight:parseInt(form.weight)||0,gpa:parseFloat(form.gpa)||0,satScore:parseInt(form.satScore)||null,toeflScore:parseInt(form.toeflScore)||null,scholarshipPct:parseInt(form.scholarshipPct)||0,totalFee:parseFloat(form.totalFee)||2700,payment1Amount:parseFloat(form.payment1Amount)||900,payment2Amount:parseFloat(form.payment2Amount)||1800,budget:parseFloat(form.budget)||null,fafsa:form.fafsa||false});
     setSaving(false); onClose();
   };
   return (
@@ -328,6 +330,16 @@ const PlayerModal = ({ initial, onClose, onSave, agentList }) => {
         })}</G2></div>}
         <div><Sec t="Académico" c="#8b5cf6"/><G2><Field l="High School" k="highSchool" form={form} set={set}/><Field l="Año graduación" k="graduationYear" form={form} set={set} type="number"/><Field l="GPA (0-4.0)" k="gpa" form={form} set={set} type="number"/><Field l="SAT Score" k="satScore" form={form} set={set} type="number"/><Field l="TOEFL Score" k="toeflScore" form={form} set={set} type="number"/><Field l="Nivel inglés" k="englishLevel" form={form} set={set} opts={["A1","A2","B1","B2","C1","C2","Nativo"]}/><div style={{ gridColumn:"1/-1" }}><label style={lbl}>Carrera (Major)</label><input style={inp} value={form.major||""} onChange={e=>set("major",e.target.value)} placeholder="Business Administration..."/></div></G2></div>
         <div><Sec t="Pagos" c="#6366f1"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}><div><label style={lbl}>Total honorarios (€)</label><input style={inp} type="number" value={form.totalFee||2700} onChange={e=>set("totalFee",e.target.value)}/></div><div><label style={lbl}>Primer pago (€)</label><input style={inp} type="number" value={form.payment1Amount||900} onChange={e=>set("payment1Amount",e.target.value)}/></div><div><label style={lbl}>Segundo pago (€)</label><input style={inp} type="number" value={form.payment2Amount||1800} onChange={e=>set("payment2Amount",e.target.value)}/></div></div></div>
+        <div><Sec t="Financiero del atleta" c="#10b981"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+          <div><label style={lbl}>Budget anual máximo ($)</label><input style={inp} type="number" value={form.budget||""} onChange={e=>set("budget",e.target.value)} placeholder="Ej: 30000"/></div>
+          <div style={{ display:"flex",flexDirection:"column",justifyContent:"flex-end" }}>
+            <label style={lbl}>FAFSA</label>
+            <div onClick={()=>set("fafsa",!form.fafsa)} style={{ display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"9px 12px",background:form.fafsa?"rgba(16,185,129,0.1)":"rgba(255,255,255,0.04)",border:`1px solid ${form.fafsa?"rgba(16,185,129,0.3)":"rgba(255,255,255,0.08)"}`,borderRadius:8 }}>
+              <div style={{ width:18,height:18,borderRadius:4,background:form.fafsa?"#10b981":"transparent",border:`2px solid ${form.fafsa?"#10b981":"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11 }}>{form.fafsa?"✓":""}</div>
+              <span style={{ fontSize:13,color:form.fafsa?"#10b981":"#9ca3af",fontWeight:600 }}>{form.fafsa?"Aplica para FAFSA":"No aplica para FAFSA"}</span>
+            </div>
+          </div>
+        </div></div>
         <div><label style={lbl}>Notas internas</label><textarea style={{ ...inp,minHeight:70,resize:"vertical" }} value={form.notes||""} onChange={e=>set("notes",e.target.value)} placeholder="Observaciones..."/></div>
         <div style={{ display:"flex",gap:10 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Guardando...":initial?"Guardar cambios":"Crear perfil"}</Btn></div></div>
       </div>
@@ -477,8 +489,18 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
             <div key={l} style={{ background:"#0f1117",border:`1px solid ${c}15`,borderRadius:10,padding:"14px",textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{l}</div><div style={{ fontSize:20,fontWeight:800,color:c }}>{v}</div></div>
           ))}
         </div>
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8 }}>
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8,marginBottom:12 }}>
           {[["High School",player.highSchool],["Graduación",player.graduationYear],["Carrera",player.major],["Nivel inglés",player.englishLevel]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
+        </div>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+          {player.budget&&<div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.12)",borderRadius:10,padding:"12px 14px" }}>
+            <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>Budget anual máximo</div>
+            <div style={{ fontSize:16,fontWeight:800,color:"#10b981" }}>${Number(player.budget).toLocaleString()}</div>
+          </div>}
+          <div style={{ background:player.fafsa?"rgba(16,185,129,0.05)":"rgba(239,68,68,0.04)",border:`1px solid ${player.fafsa?"rgba(16,185,129,0.12)":"rgba(239,68,68,0.1)"}`,borderRadius:10,padding:"12px 14px" }}>
+            <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>FAFSA</div>
+            <div style={{ fontSize:14,fontWeight:700,color:player.fafsa?"#10b981":"#ef4444" }}>{player.fafsa?"✓ Aplica para FAFSA":"✗ No aplica"}</div>
+          </div>
         </div>
       </div>}
 
@@ -672,6 +694,23 @@ const PublicPlayerPage = ({ playerId }) => {
                   <div style={{ fontSize:13,color:"#fbbf24",fontWeight:700 }}>{v}</div>
                 </div>
               ); })}
+            </div>
+          </div>
+        )}
+
+        {/* Budget & FAFSA */}
+        {(player.budget||player.fafsa!==undefined)&&(
+          <div style={{ background:"#0d0f16",border:"1px solid rgba(16,185,129,0.1)",borderRadius:16,padding:"24px",marginBottom:12 }}>
+            <div style={{ fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Financial Information</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+              {player.budget&&<div style={{ background:"rgba(16,185,129,0.04)",border:"1px solid rgba(16,185,129,0.1)",borderRadius:9,padding:"14px" }}>
+                <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>Annual Budget (max)</div>
+                <div style={{ fontSize:18,fontWeight:800,color:"#10b981" }}>${Number(player.budget).toLocaleString()}</div>
+              </div>}
+              <div style={{ background:player.fafsa?"rgba(16,185,129,0.06)":"rgba(255,255,255,0.02)",border:`1px solid ${player.fafsa?"rgba(16,185,129,0.15)":"rgba(255,255,255,0.05)"}`,borderRadius:9,padding:"14px" }}>
+                <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>FAFSA Eligible</div>
+                <div style={{ fontSize:14,fontWeight:700,color:player.fafsa?"#10b981":"#ef4444" }}>{player.fafsa?"✓ Yes — FAFSA Eligible":"✗ Not Eligible"}</div>
+              </div>
             </div>
           </div>
         )}

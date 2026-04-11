@@ -2,34 +2,34 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const SPORTS = ["Todos","Fútbol","Tenis","Natación","Béisbol","Baloncesto","Atletismo","Golf","Voleibol"];
-const STATUSES = ["Todos","Becado","En proceso","Prospecto","Inactivo"];
+const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
+const STATUSES = ["All","Scholarship","In Process","Prospect","Inactive"];
 const DIVISIONS = ["NCAA D1","NCAA D2","NCAA D3","NAIA","NJCAA"];
-const OFFER_STATUSES = ["Interesada","Oferta formal","Pre-aceptada","Rechazada","Elegida ✓"];
+const OFFER_STATUSES = ["Interested","Formal Offer","Pre-accepted","Declined","Chosen ✓"];
 const SEASONS = ["Fall 25","Spring 26","Fall 26","Spring 27","Fall 27","Spring 28","Fall 28","Spring 29"];
-const STATUS_COLORS = {"Becado":"#10b981","En proceso":"#f59e0b","Prospecto":"#6366f1","Inactivo":"#6b7280"};
-const OFFER_COLORS = {"Interesada":"#6366f1","Oferta formal":"#f59e0b","Pre-aceptada":"#10b981","Rechazada":"#ef4444","Elegida ✓":"#22c55e"};
+const STATUS_COLORS = {"Scholarship":"#10b981","In Process":"#f59e0b","Prospect":"#6366f1","Inactive":"#6b7280"};
+const OFFER_COLORS = {"Interested":"#6366f1","Formal Offer":"#f59e0b","Pre-accepted":"#10b981","Declined":"#ef4444","Chosen ✓":"#22c55e"};
 
 const POSITIONS_BY_SPORT = {
-  "Fútbol":["Portero","Defensa Central","Lateral Derecho","Lateral Izquierdo","Pivote","Centrocampista","Mediapunta","Extremo Derecho","Extremo Izquierdo","Delantero Centro"],
-  "Tenis":["Individual","Dobles","Individual y Dobles"],
-  "Natación":["Libre","Espalda","Braza","Mariposa","Estilos","Relevos"],
-  "Béisbol":["Pitcher","Catcher","First Base","Second Base","Third Base","Shortstop","Left Field","Center Field","Right Field","DH"],
-  "Baloncesto":["Base","Escolta","Alero","Ala-Pívot","Pívot"],
-  "Atletismo":["100m","200m","400m","800m","1500m","5000m","10000m","110m Vallas","400m Vallas","Salto de Altura","Salto de Longitud","Triple Salto","Pértiga","Peso","Disco","Martillo","Jabalina","Decatlón","Heptatlón"],
-  "Golf":["Amateur","Profesional"],
-  "Voleibol":["Líbero","Colocador","Opuesto","Central","Receptor","Punta"],
+  "Soccer":["Goalkeeper","Center Back","Right Back","Left Back","Defensive Midfielder","Central Midfielder","Attacking Midfielder","Right Winger","Left Winger","Striker","Forward"],
+  "Tennis":["Singles","Doubles","Singles & Doubles"],
+  "Swimming":["Freestyle","Backstroke","Breaststroke","Butterfly","Individual Medley","Relay"],
+  "Baseball":["Pitcher","Catcher","First Base","Second Base","Third Base","Shortstop","Left Field","Center Field","Right Field","DH"],
+  "Basketball":["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"],
+  "Track & Field":["100m","200m","400m","800m","1500m","5000m","10000m","110m Hurdles","400m Hurdles","High Jump","Long Jump","Triple Jump","Pole Vault","Shot Put","Discus","Hammer","Javelin","Decathlon","Heptathlon"],
+  "Golf":["Amateur","Professional"],
+  "Volleyball":["Libero","Setter","Opposite","Middle Blocker","Outside Hitter","Right Side"],
 };
 
 const SPORT_FIELDS = {
-  "Fútbol":[["Pie dominante","foot",["Derecho","Zurdo","Ambidiestro"]],["Altura (cm)","height","number"],["Peso (kg)","weight","number"],["Goles temporada","sport_goals","number"],["Asistencias","sport_assists","number"],["Partidos jugados","sport_games","number"],["Equipo actual","sport_team","text"],["Liga actual","sport_league","text"]],
-  "Tenis":[["Mano dominante","foot",["Derecha","Zurda"]],["Ranking ITF Junior","sport_ranking","text"],["Ranking Nacional","sport_national_ranking","text"],["Mejor resultado","sport_best_result","text"],["Torneos jugados","sport_games","number"],["Estilo de juego","sport_style",["Agresivo de fondo","Serve & Volley","All-Court","Defensor"]]],
-  "Natación":[["Mejor tiempo 50m libre","sport_time_50free","text"],["Mejor tiempo 100m libre","sport_time_100free","text"],["Mejor tiempo 200m libre","sport_time_200free","text"],["Mejor tiempo 100m espalda","sport_time_100back","text"],["Mejor tiempo 100m braza","sport_time_100breast","text"],["Mejor tiempo 100m mariposa","sport_time_100fly","text"],["Club actual","sport_team","text"],["Ranking nacional","sport_national_ranking","text"]],
-  "Béisbol":[["Velocidad lanzamiento (mph)","sport_velocity","number"],["Batting average","sport_batting_avg","text"],["ERA","sport_era","text"],["Home runs","sport_goals","number"],["RBIs","sport_assists","number"],["Equipo actual","sport_team","text"]],
-  "Baloncesto":[["Altura (cm)","height","number"],["Envergadura (cm)","sport_wingspan","number"],["Puntos/partido","sport_goals","number"],["Rebotes/partido","sport_rebounds","number"],["Asistencias/partido","sport_assists","number"],["Equipo actual","sport_team","text"]],
-  "Atletismo":[["Mejor marca personal","sport_personal_best","text"],["Ranking nacional","sport_national_ranking","text"],["Ranking mundial junior","sport_world_ranking","text"],["Club/Equipo","sport_team","text"],["Entrenador actual","sport_coach","text"]],
-  "Golf":[["Handicap","sport_handicap","text"],["Mejor score 18 hoyos","sport_best_score","text"],["Ranking Amateur","sport_ranking","text"],["Torneos ganados","sport_goals","number"],["Club actual","sport_team","text"]],
-  "Voleibol":[["Altura (cm)","height","number"],["Alcance de remate (cm)","sport_reach","number"],["Puntos/set","sport_goals","number"],["Aces/set","sport_assists","number"],["Equipo actual","sport_team","text"]],
+  "Soccer":[["Dominant Foot","foot",["Right","Left","Both"]],["Height (cm)","height","number"],["Weight (kg)","weight","number"],["Goals this season","sport_goals","number"],["Assists","sport_assists","number"],["Games played","sport_games","number"],["Current team","sport_team","text"],["Current league","sport_league","text"]],
+  "Tennis":[["Dominant Hand","foot",["Right","Left"]],["ITF Junior Ranking","sport_ranking","text"],["National Ranking","sport_national_ranking","text"],["Best tournament result","sport_best_result","text"],["Tournaments played","sport_games","number"],["Playing style","sport_style",["Aggressive Baseliner","Serve & Volley","All-Court","Defensive"]]],
+  "Swimming":[["Best time 50m free","sport_time_50free","text"],["Best time 100m free","sport_time_100free","text"],["Best time 200m free","sport_time_200free","text"],["Best time 100m back","sport_time_100back","text"],["Best time 100m breast","sport_time_100breast","text"],["Best time 100m fly","sport_time_100fly","text"],["Current club","sport_team","text"],["National ranking","sport_national_ranking","text"]],
+  "Baseball":[["Pitch velocity (mph)","sport_velocity","number"],["Batting average","sport_batting_avg","text"],["ERA","sport_era","text"],["Home runs","sport_goals","number"],["RBIs","sport_assists","number"],["Current team","sport_team","text"]],
+  "Basketball":[["Height (cm)","height","number"],["Wingspan (cm)","sport_wingspan","number"],["Points per game","sport_goals","number"],["Rebounds per game","sport_rebounds","number"],["Assists per game","sport_assists","number"],["Current team","sport_team","text"]],
+  "Track & Field":[["Personal best","sport_personal_best","text"],["National ranking","sport_national_ranking","text"],["World junior ranking","sport_world_ranking","text"],["Club/Team","sport_team","text"],["Current coach","sport_coach","text"]],
+  "Golf":[["Handicap","sport_handicap","text"],["Best 18-hole score","sport_best_score","text"],["Amateur ranking","sport_ranking","text"],["Tournaments won","sport_goals","number"],["Current club","sport_team","text"]],
+  "Volleyball":[["Height (cm)","height","number"],["Approach reach (cm)","sport_reach","number"],["Points per set","sport_goals","number"],["Aces per set","sport_assists","number"],["Current team","sport_team","text"]],
 };
 
 const NCAA_UNIVERSITIES = [
@@ -294,7 +294,7 @@ const Field = ({ l, k, form, set, type="text", opts, sd=false }) => (
 );
 
 const PlayerModal = ({ initial, onClose, onSave, agentList }) => {
-  const blank = { name:"",sport:"Fútbol",nationality:"",age:"",position:"",foot:"Derecho",height:"",weight:"",status:"Prospecto",agent:agentList[0]||"",phone:"",email:"",instagram:"",videoUrl:"",photoUrl:"",gpa:"",satScore:"",englishLevel:"B2",highSchool:"",graduationYear:"",major:"",toeflScore:"",university:"",state:"",scholarshipPct:0,startDate:"",contractEnd:"",notes:"",totalFee:2700,payment1Amount:900,payment2Amount:1800,budget:"",fafsa:false,sportData:{} };
+  const blank = { name:"",sport:"Soccer",nationality:"",age:"",position:"",foot:"Right",height:"",weight:"",status:"Prospect",agent:agentList[0]||"",phone:"",email:"",instagram:"",videoUrl:"",photoUrl:"",gpa:"",satScore:"",englishLevel:"B2",highSchool:"",graduationYear:"",major:"",toeflScore:"",university:"",state:"",scholarshipPct:0,startDate:"",contractEnd:"",notes:"",totalFee:2700,payment1Amount:900,payment2Amount:1800,budget:"",fafsa:false,sportData:{} };
   const [form,setForm]=useState(initial?{...blank,...initial,sportData:initial.sportData||{}}:blank);
   const [saving,setSaving]=useState(false);
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
@@ -305,43 +305,43 @@ const PlayerModal = ({ initial, onClose, onSave, agentList }) => {
     setSaving(false); onClose();
   };
   return (
-    <Modal title={initial?"Editar atleta":"Nuevo atleta"} onClose={onClose} maxWidth={680}>
+    <Modal title={initial?"Edit Athlete":"New Athlete"} onClose={onClose} maxWidth={680}>
       <div style={{ display:"flex",flexDirection:"column",gap:20 }}>
         <div style={{ display:"flex",alignItems:"center",gap:14 }}>
           <PhotoUpload currentUrl={form.photoUrl} onUpload={u=>set("photoUrl",u)} size={72}/>
-          <div style={{ fontSize:12,color:"#6b7280" }}>Haz clic para subir foto</div>
+          <div style={{ fontSize:12,color:"#6b7280" }}>Click to upload athlete photo</div>
         </div>
-        <div><Sec t="Datos personales" c="#6366f1"/><G2><Field l="Nombre completo" k="name" form={form} set={set}/><Field l="Nacionalidad" k="nationality" form={form} set={set}/><Field l="Edad" k="age" form={form} set={set} type="number"/><Field l="Email" k="email" form={form} set={set} type="email"/><Field l="Teléfono" k="phone" form={form} set={set}/><Field l="Instagram" k="instagram" form={form} set={set}/></G2></div>
-        <div><Sec t="Deportivo" c="#10b981"/>
+        <div><Sec t="Personal Information" c="#6366f1"/><G2><Field l="Full Name" k="name" form={form} set={set}/><Field l="Nationality" k="nationality" form={form} set={set}/><Field l="Age" k="age" form={form} set={set} type="number"/><Field l="Email" k="email" form={form} set={set} type="email"/><Field l="Phone" k="phone" form={form} set={set}/><Field l="Instagram" k="instagram" form={form} set={set}/></G2></div>
+        <div><Sec t="Athletic Information" c="#10b981"/>
           <G2>
-            <div><label style={lbl}>Deporte</label><select style={{ ...inp,cursor:"pointer" }} value={form.sport} onChange={e=>{ const s=e.target.value; setForm(f=>({...f,sport:s,position:(POSITIONS_BY_SPORT[s]||[])[0]||""})); }}>{SPORTS.slice(1).map(o=><option key={o}>{o}</option>)}</select></div>
-            <div><label style={lbl}>Posición</label><select style={{ ...inp,cursor:"pointer" }} value={form.position||""} onChange={e=>set("position",e.target.value)}>{(POSITIONS_BY_SPORT[form.sport]||[]).map(o=><option key={o}>{o}</option>)}</select></div>
-            <Field l="Agente asignado" k="agent" form={form} set={set} opts={agentList}/>
-            <Field l="Estado" k="status" form={form} set={set} opts={STATUSES.slice(1)}/>
-            <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Enlace vídeo</label><input style={inp} type="url" value={form.videoUrl||""} onChange={e=>set("videoUrl",e.target.value)} placeholder="https://youtube.com/..."/></div>
-            <Field l="Universidad destino" k="university" form={form} set={set}/>
-            <Field l="Estado USA" k="state" form={form} set={set}/>
-            <div><label style={lbl}>% Beca</label><input style={inp} type="number" min="0" max="100" value={form.scholarshipPct||0} onChange={e=>set("scholarshipPct",e.target.value)}/></div>
+            <div><label style={lbl}>Sport</label><select style={{ ...inp,cursor:"pointer" }} value={form.sport} onChange={e=>{ const s=e.target.value; setForm(f=>({...f,sport:s,position:(POSITIONS_BY_SPORT[s]||[])[0]||""})); }}>{SPORTS.slice(1).map(o=><option key={o}>{o}</option>)}</select></div>
+            <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position||""} onChange={e=>set("position",e.target.value)}>{(POSITIONS_BY_SPORT[form.sport]||[]).map(o=><option key={o}>{o}</option>)}</select></div>
+            <Field l="Assigned Agent" k="agent" form={form} set={set} opts={agentList}/>
+            <Field l="Status" k="status" form={form} set={set} opts={STATUSES.slice(1)}/>
+            <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Highlight Video Link</label><input style={inp} type="url" value={form.videoUrl||""} onChange={e=>set("videoUrl",e.target.value)} placeholder="https://youtube.com/..."/></div>
+            <Field l="Target University" k="university" form={form} set={set}/>
+            <Field l="US State" k="state" form={form} set={set}/>
+            <div><label style={lbl}>Scholarship %</label><input style={inp} type="number" min="0" max="100" value={form.scholarshipPct||0} onChange={e=>set("scholarshipPct",e.target.value)}/></div>
           </G2>
         </div>
-        {sf.length>0&&<div><Sec t={`Estadísticas de ${form.sport}`} c="#f59e0b"/><G2>{sf.map(([l,k,t])=>{
+        {sf.length>0&&<div><Sec t={`${form.sport} Statistics`} c="#f59e0b"/><G2>{sf.map(([l,k,t])=>{
           const isBase=k==="foot"||k==="height"||k==="weight";
           return Array.isArray(t)?<Field key={k} l={l} k={k} form={form} set={set} opts={t} sd={!isBase}/>:<Field key={k} l={l} k={k} form={form} set={set} type={t||"text"} sd={!isBase}/>;
         })}</G2></div>}
-        <div><Sec t="Académico" c="#8b5cf6"/><G2><Field l="High School" k="highSchool" form={form} set={set}/><Field l="Año graduación" k="graduationYear" form={form} set={set} type="number"/><Field l="GPA (0-4.0)" k="gpa" form={form} set={set} type="number"/><Field l="SAT Score" k="satScore" form={form} set={set} type="number"/><Field l="TOEFL Score" k="toeflScore" form={form} set={set} type="number"/><Field l="Nivel inglés" k="englishLevel" form={form} set={set} opts={["A1","A2","B1","B2","C1","C2","Nativo"]}/><div style={{ gridColumn:"1/-1" }}><label style={lbl}>Carrera (Major)</label><input style={inp} value={form.major||""} onChange={e=>set("major",e.target.value)} placeholder="Business Administration..."/></div></G2></div>
-        <div><Sec t="Pagos" c="#6366f1"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}><div><label style={lbl}>Total honorarios (€)</label><input style={inp} type="number" value={form.totalFee||2700} onChange={e=>set("totalFee",e.target.value)}/></div><div><label style={lbl}>Primer pago (€)</label><input style={inp} type="number" value={form.payment1Amount||900} onChange={e=>set("payment1Amount",e.target.value)}/></div><div><label style={lbl}>Segundo pago (€)</label><input style={inp} type="number" value={form.payment2Amount||1800} onChange={e=>set("payment2Amount",e.target.value)}/></div></div></div>
-        <div><Sec t="Financiero del atleta" c="#10b981"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-          <div><label style={lbl}>Budget anual máximo ($)</label><input style={inp} type="number" value={form.budget||""} onChange={e=>set("budget",e.target.value)} placeholder="Ej: 30000"/></div>
+        <div><Sec t="Academic Information" c="#8b5cf6"/><G2><Field l="High School" k="highSchool" form={form} set={set}/><Field l="Graduation Year" k="graduationYear" form={form} set={set} type="number"/><Field l="GPA (0-4.0)" k="gpa" form={form} set={set} type="number"/><Field l="SAT Score" k="satScore" form={form} set={set} type="number"/><Field l="TOEFL Score" k="toeflScore" form={form} set={set} type="number"/><Field l="English Level" k="englishLevel" form={form} set={set} opts={["A1","A2","B1","B2","C1","C2","Native"]}/><div style={{ gridColumn:"1/-1" }}><label style={lbl}>Intended Major</label><input style={inp} value={form.major||""} onChange={e=>set("major",e.target.value)} placeholder="Business Administration, Kinesiology..."/></div></G2></div>
+        <div><Sec t="Financial Information" c="#10b981"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+          <div><label style={lbl}>Annual Budget max ($)</label><input style={inp} type="number" value={form.budget||""} onChange={e=>set("budget",e.target.value)} placeholder="e.g. 30000"/></div>
           <div style={{ display:"flex",flexDirection:"column",justifyContent:"flex-end" }}>
-            <label style={lbl}>FAFSA</label>
+            <label style={lbl}>FAFSA Eligible</label>
             <div onClick={()=>set("fafsa",!form.fafsa)} style={{ display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"9px 12px",background:form.fafsa?"rgba(16,185,129,0.1)":"rgba(255,255,255,0.04)",border:`1px solid ${form.fafsa?"rgba(16,185,129,0.3)":"rgba(255,255,255,0.08)"}`,borderRadius:8 }}>
-              <div style={{ width:18,height:18,borderRadius:4,background:form.fafsa?"#10b981":"transparent",border:`2px solid ${form.fafsa?"#10b981":"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11 }}>{form.fafsa?"✓":""}</div>
-              <span style={{ fontSize:13,color:form.fafsa?"#10b981":"#9ca3af",fontWeight:600 }}>{form.fafsa?"Aplica para FAFSA":"No aplica para FAFSA"}</span>
+              <div style={{ width:18,height:18,borderRadius:4,background:form.fafsa?"#10b981":"transparent",border:`2px solid ${form.fafsa?"#10b981":"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff" }}>{form.fafsa?"✓":""}</div>
+              <span style={{ fontSize:13,color:form.fafsa?"#10b981":"#9ca3af",fontWeight:600 }}>{form.fafsa?"Yes — FAFSA Eligible":"Not FAFSA Eligible"}</span>
             </div>
           </div>
         </div></div>
-        <div><label style={lbl}>Notas internas</label><textarea style={{ ...inp,minHeight:70,resize:"vertical" }} value={form.notes||""} onChange={e=>set("notes",e.target.value)} placeholder="Observaciones..."/></div>
-        <div style={{ display:"flex",gap:10 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Guardando...":initial?"Guardar cambios":"Crear perfil"}</Btn></div></div>
+        <div><Sec t="Payment Structure" c="#6366f1"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}><div><label style={lbl}>Total Fee (€)</label><input style={inp} type="number" value={form.totalFee||2700} onChange={e=>set("totalFee",e.target.value)}/></div><div><label style={lbl}>First Payment (€)</label><input style={inp} type="number" value={form.payment1Amount||900} onChange={e=>set("payment1Amount",e.target.value)}/></div><div><label style={lbl}>Second Payment (€)</label><input style={inp} type="number" value={form.payment2Amount||1800} onChange={e=>set("payment2Amount",e.target.value)}/></div></div></div>
+        <div><label style={lbl}>Internal Notes</label><textarea style={{ ...inp,minHeight:70,resize:"vertical" }} value={form.notes||""} onChange={e=>set("notes",e.target.value)} placeholder="Follow-up notes, observations..."/></div>
+        <div style={{ display:"flex",gap:10 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancel</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Saving...":initial?"Save Changes":"Create Profile"}</Btn></div></div>
       </div>
     </Modal>
   );

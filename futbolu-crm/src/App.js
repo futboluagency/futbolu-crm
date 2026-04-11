@@ -703,16 +703,6 @@ export default function App() {
 
   const agentNames=agents.length>0?agents.map(a=>a.name):["Moha","Ignacio de Béjar"];
 
-  // Check if this is a public player profile link
-  const publicPlayerId = new URLSearchParams(window.location.search).get("player");
-  if(publicPlayerId && !loading) return <PublicPlayerPage playerId={publicPlayerId}/>;
-  if(publicPlayerId && loading) return (
-    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12 }}>
-      <img src="/logo.png" alt="FUA" onError={e=>e.target.style.display="none"} style={{ height:44,objectFit:"contain" }}/>
-      <div style={{ fontSize:13,color:"#374151" }}>Loading athlete profile...</div>
-    </div>
-  );
-
   // Check URL for agent link
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
@@ -759,6 +749,10 @@ export default function App() {
 
   // Greeting for agent link
   const agentObj=currentAgent?agents.find(a=>a.name===currentAgent||a.name.toLowerCase().includes(currentAgent.toLowerCase())):null;
+
+  // Public player profile — show only the athlete page, no CRM access
+  const publicPlayerId = new URLSearchParams(window.location.search).get("player");
+  if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
 
   if(loading) return (
     <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14 }}>

@@ -2,13 +2,35 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
 
 const AGENTS = ["Moha", "Ignacio de Béjar"];
-const SPORTS = ["Todos", "Fútbol", "Tenis", "Natación", "Béisbol", "Baloncesto", "Atletismo", "Golf", "Voleibol"];
-const STATUSES = ["Todos", "Becado", "En proceso", "Prospecto", "Inactivo"];
+const SPORTS = ["Todos","Fútbol","Tenis","Natación","Béisbol","Baloncesto","Atletismo","Golf","Voleibol"];
+const STATUSES = ["Todos","Becado","En proceso","Prospecto","Inactivo"];
 const POSITIONS = ["Portero","Defensa Central","Lateral Derecho","Lateral Izquierdo","Pivote","Centrocampista","Mediapunta","Extremo Derecho","Extremo Izquierdo","Delantero Centro","N/A"];
 const FEET = ["Derecho","Zurdo","Ambidiestro"];
+const DIVISIONS = ["NCAA D1","NCAA D2","NCAA D3","NAIA","NJCAA"];
 const OFFER_STATUSES = ["Interesada","Oferta formal","Pre-aceptada","Rechazada","Elegida ✓"];
-const STATUS_COLORS = { "Becado":"#22c55e","En proceso":"#f59e0b","Prospecto":"#3b82f6","Inactivo":"#6b7280" };
-const OFFER_COLORS = { "Interesada":"#6366f1","Oferta formal":"#f59e0b","Pre-aceptada":"#22c55e","Rechazada":"#ef4444","Elegida ✓":"#10b981" };
+const SEASONS = ["Fall 25","Spring 26","Fall 26","Spring 27","Fall 27","Spring 28","Fall 28","Spring 29","Fall 29"];
+const STATUS_COLORS = {"Becado":"#22c55e","En proceso":"#f59e0b","Prospecto":"#3b82f6","Inactivo":"#6b7280"};
+const OFFER_COLORS = {"Interesada":"#6366f1","Oferta formal":"#f59e0b","Pre-aceptada":"#22c55e","Rechazada":"#ef4444","Elegida ✓":"#10b981"};
+
+// University logo helper using Clearbit
+const UniLogo = ({ name, size = 36 }) => {
+  const [err, setErr] = useState(false);
+  const domain = {
+    "SMU": "smu.edu", "UCLA": "ucla.edu", "Stanford": "stanford.edu",
+    "University of Miami": "miami.edu", "USC": "usc.edu", "Cal Berkeley": "berkeley.edu",
+    "Texas A&M": "tamu.edu", "FIU": "fiu.edu", "FAU": "fau.edu",
+    "University of South Florida": "usf.edu", "Duke": "duke.edu", "Harvard": "harvard.edu",
+    "Notre Dame": "nd.edu", "Georgetown": "georgetown.edu", "Vanderbilt": "vanderbilt.edu",
+    "Wake Forest": "wfu.edu", "Boston College": "bc.edu", "Syracuse": "syr.edu",
+  };
+  const d = Object.entries(domain).find(([k]) => name?.toLowerCase().includes(k.toLowerCase()))?.[1];
+  if (!err && d) return (
+    <img src={`https://logo.clearbit.com/${d}`} alt={name} onError={() => setErr(true)}
+      style={{ width: size, height: size, borderRadius: 8, objectFit: "contain", background: "#fff", padding: 2 }} />
+  );
+  const initials = (name || "U").split(" ").map(w => w[0]).slice(0, 2).join("");
+  return <div style={{ width: size, height: size, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.32, fontWeight: 800, color: "#fff" }}>{initials}</div>;
+};
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const Avatar = ({ name, size = 40 }) => {
@@ -20,66 +42,170 @@ const Avatar = ({ name, size = 40 }) => {
 const Badge = ({ status }) => <span style={{ padding:"3px 11px",borderRadius:20,fontSize:11,fontWeight:700,background:`${STATUS_COLORS[status]}18`,color:STATUS_COLORS[status],border:`1px solid ${STATUS_COLORS[status]}33`,whiteSpace:"nowrap" }}>{status}</span>;
 const OfferBadge = ({ status }) => <span style={{ padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:700,background:`${OFFER_COLORS[status]||"#6b7280"}18`,color:OFFER_COLORS[status]||"#6b7280",border:`1px solid ${OFFER_COLORS[status]||"#6b7280"}33` }}>{status}</span>;
 const Pill = ({ label, color="#6b7280" }) => <span style={{ padding:"2px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:`${color}15`,color,border:`1px solid ${color}28` }}>{label}</span>;
-const Bar = ({ value, max, color="#6366f1", h=5 }) => <div style={{ width:"100%",background:"rgba(255,255,255,0.06)",borderRadius:99,height:h }}><div style={{ width:`${Math.min(100,max>0?(value/max)*100:0)}%`,background:`linear-gradient(90deg,${color}66,${color})`,height:"100%",borderRadius:99,transition:"width .5s" }} /></div>;
+const Bar = ({ value, max, color="#6366f1", h=5 }) => <div style={{ width:"100%",background:"rgba(255,255,255,0.06)",borderRadius:99,height:h }}><div style={{ width:`${Math.min(100,max>0?(value/max)*100:0)}%`,background:`linear-gradient(90deg,${color}66,${color})`,height:"100%",borderRadius:99 }} /></div>;
 const Card = ({ children, style={} }) => <div style={{ background:"linear-gradient(145deg,#181b2a,#111420)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:16,padding:"20px 22px",...style }}>{children}</div>;
 const StatCard = ({ label, value, sub, color="#6366f1", icon }) => (
   <div style={{ background:"linear-gradient(145deg,#181b2a,#111420)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:16,padding:"18px 22px",position:"relative",overflow:"hidden" }}>
-    <div style={{ position:"absolute",top:-20,right:-20,width:70,height:70,borderRadius:"50%",background:`radial-gradient(circle,${color}20,transparent)` }} />
+    <div style={{ position:"absolute",top:-20,right:-20,width:70,height:70,borderRadius:"50%",background:`radial-gradient(circle,${color}20,transparent)` }}/>
     <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}><span style={{ color }}>{icon}</span><span style={{ fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:1,color:"#6b7280" }}>{label}</span></div>
     <div style={{ fontSize:28,fontWeight:900,color:"#f9fafb",lineHeight:1 }}>{value}</div>
-    {sub && <div style={{ fontSize:12,color:"#6b7280",marginTop:6 }}>{sub}</div>}
+    {sub&&<div style={{ fontSize:12,color:"#6b7280",marginTop:6 }}>{sub}</div>}
   </div>
 );
-const Svg = ({ d, size=16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
+const Svg = ({ d, size=16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
 const Ic = {
-  dash: <Svg d="M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3z" />,
-  players: <Svg d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm14 18v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
-  fin: <Svg d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />,
-  uni: <Svg d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10" />,
-  search: <Svg d="M21 21l-4.35-4.35M11 19A8 8 0 1 0 11 3a8 8 0 0 0 0 16z" />,
-  plus: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  back: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,18 9,12 15,6"/></svg>,
-  edit: <Svg d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z" />,
-  video: <Svg d="M22.54 6.42A2.78 2.78 0 0 0 20.7 4.56C19.08 4 12 4 12 4s-7.08 0-8.7.56A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.3 19.44C4.92 20 12 20 12 20s7.08 0 8.7-.56a2.78 2.78 0 0 0 1.84-1.86A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02l5.5-3.02-5.5-3.02z" />,
-  check: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>,
-  x: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  trophy: <Svg d="M8 21h8M12 17v4M7 4v6a5 5 0 0 0 10 0V4M17 4h2a2 2 0 0 1 2 2v1a3 3 0 0 1-3 3h-1M7 4H5a2 2 0 0 0-2 2v1a3 3 0 0 0 3 3h1" />,
-  alert: <Svg d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" />,
-  ball: <Svg d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2zM2 12h20" />,
-  star: <Svg d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />,
-  refresh: <Svg d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />,
+  dash:<Svg d="M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3z"/>,
+  players:<Svg d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm14 18v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>,
+  fin:<Svg d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>,
+  uni:<Svg d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10"/>,
+  search:<Svg d="M21 21l-4.35-4.35M11 19A8 8 0 1 0 11 3a8 8 0 0 0 0 16z"/>,
+  plus:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  back:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,18 9,12 15,6"/></svg>,
+  edit:<Svg d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/>,
+  video:<Svg d="M22.54 6.42A2.78 2.78 0 0 0 20.7 4.56C19.08 4 12 4 12 4s-7.08 0-8.7.56A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.3 19.44C4.92 20 12 20 12 20s7.08 0 8.7-.56a2.78 2.78 0 0 0 1.84-1.86A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02l5.5-3.02-5.5-3.02z"/>,
+  check:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>,
+  x:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  trophy:<Svg d="M8 21h8M12 17v4M7 4v6a5 5 0 0 0 10 0V4M17 4h2a2 2 0 0 1 2 2v1a3 3 0 0 1-3 3h-1M7 4H5a2 2 0 0 0-2 2v1a3 3 0 0 0 3 3h1"/>,
+  alert:<Svg d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>,
+  share:<Svg d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>,
+  copy:<Svg d="M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.91 4.895 3 6 3h8c1.105 0 2 .911 2 2.036v1.866m-6 .17h8c1.105 0 2 .91 2 2.035v10.857C20 21.09 19.105 22 18 22h-8c-1.105 0-2-.911-2-2.036V9.107c0-1.124.895-2.036 2-2.036z"/>,
+  refresh:<Svg d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>,
 };
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
-const dbToPlayer = (row, offers = [], timeline = []) => ({
-  id: row.id, name: row.name, sport: row.sport, nationality: row.nationality, age: row.age,
-  position: row.position, foot: row.foot, height: row.height, weight: row.weight,
-  status: row.status, agent: row.agent, phone: row.phone, email: row.email,
-  instagram: row.instagram, videoUrl: row.video_url,
-  gpa: row.gpa, satScore: row.sat_score, englishLevel: row.english_level,
-  highSchool: row.high_school, graduationYear: row.graduation_year, major: row.major,
-  toeflScore: row.toefl_score, university: row.university, state: row.state,
-  scholarshipPct: row.scholarship_pct, startDate: row.start_date, contractEnd: row.contract_end,
-  notes: row.notes,
-  payment1: { paid: row.payment1_paid, paidBy: row.payment1_paid_by, date: row.payment1_date },
-  payment2: { paid: row.payment2_paid, paidBy: row.payment2_paid_by, date: row.payment2_date },
-  offers: offers.map(o => ({ id: o.id, university: o.university, state: o.state, division: o.division, scholarshipPct: o.scholarship_pct, status: o.status, notes: o.notes })),
-  timeline: timeline.map(t => ({ id: t.id, date: t.date, event: t.event, type: t.type })),
+const dbToPlayer = (row, offers=[], timeline=[]) => ({
+  id:row.id, name:row.name, sport:row.sport, nationality:row.nationality, age:row.age,
+  position:row.position, foot:row.foot, height:row.height, weight:row.weight,
+  status:row.status, agent:row.agent, phone:row.phone, email:row.email,
+  instagram:row.instagram, videoUrl:row.video_url,
+  gpa:row.gpa, satScore:row.sat_score, englishLevel:row.english_level,
+  highSchool:row.high_school, graduationYear:row.graduation_year, major:row.major,
+  toeflScore:row.toefl_score, university:row.university, state:row.state,
+  scholarshipPct:row.scholarship_pct, startDate:row.start_date, contractEnd:row.contract_end,
+  notes:row.notes,
+  payment1:{paid:row.payment1_paid, paidBy:row.payment1_paid_by, date:row.payment1_date},
+  payment2:{paid:row.payment2_paid, paidBy:row.payment2_paid_by, date:row.payment2_date},
+  offers:offers.map(o=>({id:o.id,university:o.university,state:o.state,division:o.division,scholarshipPct:o.scholarship_pct,amount:o.amount,season:o.season,status:o.status,notes:o.notes})),
+  timeline:timeline.map(t=>({id:t.id,date:t.date,event:t.event,type:t.type})),
+});
+const playerToDb = (p) => ({
+  name:p.name, sport:p.sport, nationality:p.nationality, age:p.age||null,
+  position:p.position, foot:p.foot, height:p.height||null, weight:p.weight||null,
+  status:p.status, agent:p.agent, phone:p.phone, email:p.email,
+  instagram:p.instagram, video_url:p.videoUrl,
+  gpa:p.gpa||null, sat_score:p.satScore||null, english_level:p.englishLevel,
+  high_school:p.highSchool, graduation_year:p.graduationYear||null, major:p.major,
+  toefl_score:p.toeflScore||null, university:p.university, state:p.state,
+  scholarship_pct:p.scholarshipPct||0,
+  start_date:p.startDate||null, contract_end:p.contractEnd||null, notes:p.notes,
+  payment1_paid:p.payment1?.paid||false, payment1_paid_by:p.payment1?.paidBy||null, payment1_date:p.payment1?.date||null,
+  payment2_paid:p.payment2?.paid||false, payment2_paid_by:p.payment2?.paidBy||null, payment2_date:p.payment2?.date||null,
 });
 
-const playerToDb = (p) => ({
-  name: p.name, sport: p.sport, nationality: p.nationality, age: p.age || null,
-  position: p.position, foot: p.foot, height: p.height || null, weight: p.weight || null,
-  status: p.status, agent: p.agent, phone: p.phone, email: p.email,
-  instagram: p.instagram, video_url: p.videoUrl,
-  gpa: p.gpa || null, sat_score: p.satScore || null, english_level: p.englishLevel,
-  high_school: p.highSchool, graduation_year: p.graduationYear || null, major: p.major,
-  toefl_score: p.toeflScore || null, university: p.university, state: p.state,
-  scholarship_pct: p.scholarshipPct || 0,
-  start_date: p.startDate || null, contract_end: p.contractEnd || null, notes: p.notes,
-  payment1_paid: p.payment1?.paid || false, payment1_paid_by: p.payment1?.paidBy || null, payment1_date: p.payment1?.date || null,
-  payment2_paid: p.payment2?.paid || false, payment2_paid_by: p.payment2?.paidBy || null, payment2_date: p.payment2?.date || null,
-});
+// ── Public Profile View ───────────────────────────────────────────────────────
+const PublicProfile = ({ player, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const publicUrl = `${window.location.origin}?player=${player.id}`;
+  const copyLink = () => { navigator.clipboard.writeText(publicUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,overflowY:"auto" }}>
+      <div style={{ background:"#0d0f1a",border:"1px solid rgba(255,255,255,0.1)",borderRadius:20,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto" }}>
+        {/* Header */}
+        <div style={{ background:"linear-gradient(135deg,#1a1d2e,#13151f)",padding:"28px 28px 24px",borderRadius:"20px 20px 0 0",borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20 }}>
+            <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+              <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:32,objectFit:"contain" }}/>
+              <div>
+                <div style={{ fontSize:13,fontWeight:800,color:"#f9fafb",letterSpacing:0.5 }}>FUTBOLUAGENCY</div>
+                <div style={{ fontSize:10,color:"#6b7280" }}>Perfil oficial del atleta</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:20 }}>✕</button>
+          </div>
+          <div style={{ display:"flex",gap:16,alignItems:"center" }}>
+            <Avatar name={player.name} size={72}/>
+            <div>
+              <h2 style={{ margin:0,fontSize:22,fontWeight:900,color:"#f9fafb" }}>{player.name}</h2>
+              <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginTop:6 }}>
+                <Pill label={player.sport} color="#6366f1"/>
+                {player.position!=="N/A"&&<Pill label={player.position} color="#8b5cf6"/>}
+                {player.nationality&&<Pill label={player.nationality} color="#3b82f6"/>}
+                {player.age&&<Pill label={player.age+" años"} color="#6b7280"/>}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding:"20px 28px 28px",display:"flex",flexDirection:"column",gap:18 }}>
+          {/* Key stats */}
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10 }}>
+            {[["GPA",player.gpa||"—",player.gpa>=3.5?"#22c55e":player.gpa>=3?"#f59e0b":"#9ca3af"],["SAT",player.satScore||"—","#6366f1"],["TOEFL",player.toeflScore||"—","#8b5cf6"],["Inglés",player.englishLevel||"—","#3b82f6"]].map(([l,v,c])=>(
+              <div key={l} style={{ background:"rgba(255,255,255,0.04)",border:`1px solid ${c}22`,borderRadius:12,padding:"12px",textAlign:"center" }}>
+                <div style={{ fontSize:9,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:700 }}>{l}</div>
+                <div style={{ fontSize:20,fontWeight:900,color:c }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {/* Sports info */}
+          <div style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"16px 18px" }}>
+            <div style={{ fontSize:10,fontWeight:800,color:"#6366f1",textTransform:"uppercase",letterSpacing:1,marginBottom:12 }}>Información deportiva</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+              {[["Deporte",player.sport],["Posición",player.position],["Pie dominante",player.foot],["Altura",player.height?player.height+" cm":"—"],["Peso",player.weight?player.weight+" kg":"—"],["Universidad",player.university||"—"]].map(([l,v])=>(
+                <div key={l}><div style={{ fontSize:9,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:700 }}>{l}</div><div style={{ fontSize:13,color:"#e5e7eb",fontWeight:600 }}>{v}</div></div>
+              ))}
+            </div>
+          </div>
+          {/* Academic */}
+          <div style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"16px 18px" }}>
+            <div style={{ fontSize:10,fontWeight:800,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1,marginBottom:12 }}>Información académica</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+              {[["High School",player.highSchool||"—"],["Graduación",player.graduationYear||"—"],["Carrera",player.major||"—"],["Nivel inglés",player.englishLevel||"—"]].map(([l,v])=>(
+                <div key={l}><div style={{ fontSize:9,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:700 }}>{l}</div><div style={{ fontSize:13,color:"#e5e7eb",fontWeight:600 }}>{v}</div></div>
+              ))}
+            </div>
+          </div>
+          {/* Video */}
+          {player.videoUrl&&(
+            <a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ display:"flex",alignItems:"center",gap:10,padding:"14px 18px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:14,textDecoration:"none",color:"#f87171",fontWeight:700,fontSize:14 }}>
+              {Ic.video} Ver vídeo deportivo
+            </a>
+          )}
+          {/* Offers */}
+          {player.offers?.length>0&&(
+            <div>
+              <div style={{ fontSize:10,fontWeight:800,color:"#22c55e",textTransform:"uppercase",letterSpacing:1,marginBottom:12 }}>Ofertas universitarias</div>
+              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                {player.offers.filter(o=>o.status!=="Rechazada").map(o=>(
+                  <div key={o.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"rgba(255,255,255,0.03)",border:`1px solid ${OFFER_COLORS[o.status]||"#374151"}33`,borderRadius:12 }}>
+                    <UniLogo name={o.university} size={36}/>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14,fontWeight:800,color:"#f9fafb" }}>{o.university}</div>
+                      <div style={{ fontSize:11,color:"#9ca3af",marginTop:2 }}>{o.division} · {o.state}</div>
+                    </div>
+                    <div style={{ textAlign:"right" }}>
+                      {o.amount&&<div style={{ fontSize:15,fontWeight:900,color:"#22c55e" }}>{Number(o.amount).toLocaleString()}€</div>}
+                      {o.season&&<div style={{ fontSize:11,color:"#6b7280" }}>{o.season}</div>}
+                      <OfferBadge status={o.status}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Share link */}
+          <div style={{ background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:14,padding:"14px 18px" }}>
+            <div style={{ fontSize:10,fontWeight:800,color:"#6366f1",textTransform:"uppercase",letterSpacing:1,marginBottom:10 }}>Compartir este perfil</div>
+            <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+              <div style={{ flex:1,background:"rgba(0,0,0,0.3)",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{publicUrl}</div>
+              <button onClick={copyLink} style={{ padding:"8px 16px",borderRadius:8,border:"none",background:copied?"#22c55e":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                {copied?"✓ Copiado":"Copiar link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ── Payment Row ───────────────────────────────────────────────────────────────
 const PaymentRow = ({ label, amount, payment, onToggle }) => (
@@ -89,9 +215,8 @@ const PaymentRow = ({ label, amount, payment, onToggle }) => (
     </div>
     <div style={{ flex:1 }}>
       <div style={{ fontSize:13,fontWeight:700,color:"#e5e7eb" }}>{label} — <span style={{ color:"#f9fafb" }}>{amount}€</span></div>
-      {payment.paid
-        ?<div style={{ fontSize:11,color:"#6b7280",marginTop:2 }}>Cobrado por <span style={{ color:payment.paidBy==="Moha"?"#818cf8":"#fbbf24",fontWeight:700 }}>{payment.paidBy}</span> · {payment.date}</div>
-        :<div style={{ fontSize:11,color:"#f59e0b",marginTop:2 }}>Pendiente de cobro</div>}
+      {payment.paid?<div style={{ fontSize:11,color:"#6b7280",marginTop:2 }}>Cobrado por <span style={{ color:payment.paidBy==="Moha"?"#818cf8":"#fbbf24",fontWeight:700 }}>{payment.paidBy}</span> · {payment.date}</div>
+      :<div style={{ fontSize:11,color:"#f59e0b",marginTop:2 }}>Pendiente de cobro</div>}
     </div>
     <div style={{ display:"flex",gap:6 }}>
       {!payment.paid&&AGENTS.map(agent=>(
@@ -107,8 +232,8 @@ const PaymentRow = ({ label, amount, payment, onToggle }) => (
 // ── Player Modal ──────────────────────────────────────────────────────────────
 const PlayerModal = ({ initial, onClose, onSave }) => {
   const blank = { name:"",sport:"Fútbol",nationality:"",age:"",position:"Delantero Centro",foot:"Derecho",height:"",weight:"",status:"Prospecto",agent:"Moha",phone:"",email:"",instagram:"",videoUrl:"",gpa:"",satScore:"",englishLevel:"B2",highSchool:"",graduationYear:"",major:"",toeflScore:"",university:"",state:"",scholarshipPct:0,startDate:"",contractEnd:"",notes:"" };
-  const [form, setForm] = useState(initial?{...initial,videoUrl:initial.videoUrl||"",satScore:initial.satScore||"",toeflScore:initial.toeflScore||""}:blank);
-  const [saving, setSaving] = useState(false);
+  const [form,setForm] = useState(initial?{...initial,videoUrl:initial.videoUrl||"",satScore:initial.satScore||"",toeflScore:initial.toeflScore||""}:blank);
+  const [saving,setSaving] = useState(false);
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const inp = { background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:9,padding:"9px 13px",color:"#f9fafb",fontSize:13,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
   const lbl = { fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:5,display:"block" };
@@ -121,9 +246,8 @@ const PlayerModal = ({ initial, onClose, onSave }) => {
   const save = async () => {
     if(!form.name.trim()) return;
     setSaving(true);
-    await onSave({...form,age:parseInt(form.age)||0,height:parseInt(form.height)||0,weight:parseInt(form.weight)||0,gpa:parseFloat(form.gpa)||0,satScore:parseInt(form.satScore)||null,toeflScore:parseInt(form.toeflScore)||null,scholarshipPct:parseInt(form.scholarshipPct)||0});
-    setSaving(false);
-    onClose();
+    await onSave({...form,id:form.id||undefined,age:parseInt(form.age)||0,height:parseInt(form.height)||0,weight:parseInt(form.weight)||0,gpa:parseFloat(form.gpa)||0,satScore:parseInt(form.satScore)||null,toeflScore:parseInt(form.toeflScore)||null,scholarshipPct:parseInt(form.scholarshipPct)||0});
+    setSaving(false); onClose();
   };
   const sec = (label,color) => <div style={{ fontSize:10,fontWeight:800,color,textTransform:"uppercase",letterSpacing:1.2,marginBottom:12,paddingBottom:8,borderBottom:`1px solid ${color}22` }}>{label}</div>;
   return (
@@ -151,28 +275,30 @@ const PlayerModal = ({ initial, onClose, onSave }) => {
 
 // ── Offer Modal ───────────────────────────────────────────────────────────────
 const OfferModal = ({ onClose, onAdd }) => {
-  const [f,setF] = useState({ university:"",state:"",division:"D1",scholarshipPct:"",status:"Interesada",notes:"" });
+  const [f,setF] = useState({ university:"",state:"",division:"NCAA D1",scholarshipPct:"",amount:"",season:"Fall 27",status:"Interesada",notes:"" });
   const [saving,setSaving] = useState(false);
   const inp = { background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:9,padding:"9px 13px",color:"#f9fafb",fontSize:13,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
   const lbl = { fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:5,display:"block" };
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1100,padding:20 }}>
-      <div style={{ background:"#12141f",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:28,width:"100%",maxWidth:420 }}>
+      <div style={{ background:"#12141f",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:28,width:"100%",maxWidth:460 }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20 }}>
           <h3 style={{ margin:0,fontSize:17,fontWeight:800,color:"#f9fafb" }}>Nueva oferta universitaria</h3>
           <button onClick={onClose} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer" }}>{Ic.x}</button>
         </div>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-          <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Universidad</label><input style={inp} value={f.university} onChange={e=>setF(p=>({...p,university:e.target.value}))} placeholder="Nombre de la universidad"/></div>
-          <div><label style={lbl}>Estado USA</label><input style={inp} value={f.state} onChange={e=>setF(p=>({...p,state:e.target.value}))} placeholder="California..."/></div>
-          <div><label style={lbl}>División</label><select style={{ ...inp,cursor:"pointer" }} value={f.division} onChange={e=>setF(p=>({...p,division:e.target.value}))}><option>D1</option><option>D2</option><option>D3</option><option>NAIA</option></select></div>
+          <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Universidad</label><input style={inp} value={f.university} onChange={e=>setF(p=>({...p,university:e.target.value}))} placeholder="Ej: SMU, UCLA, Stanford..."/></div>
+          <div><label style={lbl}>Estado USA</label><input style={inp} value={f.state} onChange={e=>setF(p=>({...p,state:e.target.value}))} placeholder="Texas..."/></div>
+          <div><label style={lbl}>División</label><select style={{ ...inp,cursor:"pointer" }} value={f.division} onChange={e=>setF(p=>({...p,division:e.target.value}))}>{DIVISIONS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>% Beca ofrecida</label><input style={inp} type="number" min="0" max="100" value={f.scholarshipPct} onChange={e=>setF(p=>({...p,scholarshipPct:e.target.value}))}/></div>
+          <div><label style={lbl}>Importe anual (€)</label><input style={inp} type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} placeholder="20000"/></div>
+          <div><label style={lbl}>Temporada</label><select style={{ ...inp,cursor:"pointer" }} value={f.season} onChange={e=>setF(p=>({...p,season:e.target.value}))}>{SEASONS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>Estado oferta</label><select style={{ ...inp,cursor:"pointer" }} value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))}>{OFFER_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Notas</label><input style={inp} value={f.notes} onChange={e=>setF(p=>({...p,notes:e.target.value}))} placeholder="Detalles..."/></div>
+          <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Notas</label><input style={inp} value={f.notes} onChange={e=>setF(p=>({...p,notes:e.target.value}))} placeholder="Detalles adicionales..."/></div>
         </div>
         <div style={{ display:"flex",gap:10,marginTop:20 }}>
           <button onClick={onClose} style={{ flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.1)",background:"none",color:"#9ca3af",cursor:"pointer",fontWeight:600,fontFamily:"inherit" }}>Cancelar</button>
-          <button onClick={async()=>{ if(f.university&&!saving){ setSaving(true); await onAdd({...f,scholarshipPct:parseInt(f.scholarshipPct)||0}); setSaving(false); onClose(); }}} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",opacity:saving?0.7:1 }}>{saving?"Guardando...":"Añadir oferta"}</button>
+          <button onClick={async()=>{ if(f.university&&!saving){ setSaving(true); await onAdd({...f,scholarshipPct:parseInt(f.scholarshipPct)||0,amount:parseFloat(f.amount)||null}); setSaving(false); onClose(); }}} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontWeight:800,fontSize:13,fontFamily:"inherit",opacity:saving?0.7:1 }}>{saving?"Guardando...":"Añadir oferta"}</button>
         </div>
       </div>
     </div>
@@ -184,52 +310,39 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
   const [tab,setTab] = useState("profile");
   const [editModal,setEditModal] = useState(false);
   const [offerModal,setOfferModal] = useState(false);
+  const [publicModal,setPublicModal] = useState(false);
   const [saving,setSaving] = useState(false);
 
-  const paid = (player.payment1.paid?900:0)+(player.payment2.paid?1800:0);
-  const pending = 2700-paid;
+  const paid=(player.payment1?.paid?900:0)+(player.payment2?.paid?1800:0);
+  const pending=2700-paid;
 
-  const handlePayment = async (num, agent) => {
+  const handlePayment = async (num,agent) => {
     setSaving(true);
-    const date = agent ? new Date().toISOString().split("T")[0] : null;
-    const dbUpdate = num===1
-      ? { payment1_paid: !!agent, payment1_paid_by: agent, payment1_date: date }
-      : { payment2_paid: !!agent, payment2_paid_by: agent, payment2_date: date };
-    await supabase.from("players").update(dbUpdate).eq("id", player.id);
-    if (agent) {
-      await supabase.from("timeline").insert({ player_id: player.id, date, event: `${num===1?"Pago inicial (900€)":"Segundo pago (1.800€)"} cobrado por ${agent}`, type: "payment" });
-    }
-    await onRefresh();
-    setSaving(false);
+    const date=agent?new Date().toISOString().split("T")[0]:null;
+    const dbUpdate=num===1?{payment1_paid:!!agent,payment1_paid_by:agent,payment1_date:date}:{payment2_paid:!!agent,payment2_paid_by:agent,payment2_date:date};
+    await supabase.from("players").update(dbUpdate).eq("id",player.id);
+    if(agent) await supabase.from("timeline").insert({player_id:player.id,date,event:`${num===1?"Pago inicial (900€)":"Segundo pago (1.800€)"} cobrado por ${agent}`,type:"payment"});
+    await onRefresh(); setSaving(false);
   };
 
   const addOffer = async (offer) => {
-    await supabase.from("offers").insert({ player_id: player.id, university: offer.university, state: offer.state, division: offer.division, scholarship_pct: offer.scholarshipPct, status: offer.status, notes: offer.notes });
+    await supabase.from("offers").insert({player_id:player.id,university:offer.university,state:offer.state,division:offer.division,scholarship_pct:offer.scholarshipPct,amount:offer.amount,season:offer.season,status:offer.status,notes:offer.notes});
     await onRefresh();
   };
+  const updateOfferStatus = async (id,status) => { await supabase.from("offers").update({status}).eq("id",id); await onRefresh(); };
+  const removeOffer = async (id) => { await supabase.from("offers").delete().eq("id",id); await onRefresh(); };
 
-  const updateOfferStatus = async (offerId, status) => {
-    await supabase.from("offers").update({ status }).eq("id", offerId);
-    await onRefresh();
-  };
-
-  const removeOffer = async (offerId) => {
-    await supabase.from("offers").delete().eq("id", offerId);
-    await onRefresh();
-  };
-
-  const tabs = [
-    { id:"profile",label:"Perfil" },{ id:"sports",label:"Deportivo" },{ id:"academic",label:"Académico" },
-    { id:"offers",label:`Ofertas (${player.offers?.length||0})` },{ id:"payments",label:"Pagos" },{ id:"timeline",label:"Historial" },
-  ];
-  const tlColor = { contact:"#6366f1",contract:"#8b5cf6",milestone:"#22c55e",achievement:"#f59e0b",payment:"#10b981" };
-  const tlEmoji = { contact:"👋",contract:"✍️",milestone:"🎯",achievement:"🏆",payment:"💰" };
+  const tabs=[{id:"profile",label:"Perfil"},{id:"sports",label:"Deportivo"},{id:"academic",label:"Académico"},{id:"offers",label:`Ofertas (${player.offers?.length||0})`},{id:"payments",label:"Pagos"},{id:"timeline",label:"Historial"}];
+  const tlColor={contact:"#6366f1",contract:"#8b5cf6",milestone:"#22c55e",achievement:"#f59e0b",payment:"#10b981"};
+  const tlEmoji={contact:"👋",contract:"✍️",milestone:"🎯",achievement:"🏆",payment:"💰"};
 
   return (
     <div>
-      <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,marginBottom:20,padding:0,fontFamily:"inherit" }}>
-        {Ic.back} Volver a jugadores
-      </button>
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20 }}>
+        <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,padding:0,fontFamily:"inherit" }}>{Ic.back} Volver</button>
+        <button onClick={()=>setPublicModal(true)} style={{ display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:10,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.1)",color:"#818cf8",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit" }}>{Ic.share} Compartir perfil</button>
+      </div>
+
       <Card style={{ marginBottom:20 }}>
         <div style={{ display:"flex",gap:20,alignItems:"flex-start",flexWrap:"wrap" }}>
           <Avatar name={player.name} size={76}/>
@@ -241,7 +354,7 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
               {player.position!=="N/A"&&<Pill label={player.position} color="#8b5cf6"/>}
             </div>
             <div style={{ display:"flex",gap:16,flexWrap:"wrap",marginBottom:12 }}>
-              {[[player.nationality,"#9ca3af"],[player.age+" años","#9ca3af"],[player.university,player.university==="Por definir"?"#4b5563":"#22c55e"],[player.agent,player.agent==="Moha"?"#818cf8":"#fbbf24"]].map(([v,c])=>v&&<span key={v} style={{ fontSize:13,color:c,fontWeight:600 }}>{v}</span>)}
+              {[[player.nationality,"#9ca3af"],[player.age&&player.age+" años","#9ca3af"],[player.university,player.university==="Por definir"?"#4b5563":"#22c55e"],[player.agent,player.agent==="Moha"?"#818cf8":"#fbbf24"]].filter(([v])=>v).map(([v,c])=><span key={v} style={{ fontSize:13,color:c,fontWeight:600 }}>{v}</span>)}
             </div>
             <div style={{ display:"flex",gap:10,flexWrap:"wrap" }}>
               <div style={{ background:paid>=2700?"rgba(34,197,94,0.12)":paid>0?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)",borderRadius:10,padding:"6px 14px",border:`1px solid ${paid>=2700?"rgba(34,197,94,0.25)":paid>0?"rgba(245,158,11,0.25)":"rgba(239,68,68,0.25)"}` }}>
@@ -254,13 +367,13 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
         </div>
       </Card>
 
-      <div style={{ display:"flex",gap:2,marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:4,overflowX:"auto",flexWrap:"wrap" }}>
-        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"8px 15px",borderRadius:9,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",background:tab===t.id?"rgba(99,102,241,0.25)":"none",color:tab===t.id?"#818cf8":"#6b7280",transition:"all .15s",fontFamily:"inherit" }}>{t.label}</button>)}
+      <div style={{ display:"flex",gap:2,marginBottom:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:4,overflowX:"auto" }}>
+        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"8px 15px",borderRadius:9,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",background:tab===t.id?"rgba(99,102,241,0.25)":"none",color:tab===t.id?"#818cf8":"#6b7280",fontFamily:"inherit" }}>{t.label}</button>)}
       </div>
 
       {tab==="profile"&&(
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-          {[["Email",player.email],["Teléfono",player.phone],["Instagram",player.instagram||"—"],["Nacionalidad",player.nationality],["Edad",player.age+" años"],["Agente",player.agent]].map(([l,v])=>(
+          {[["Email",player.email||"—"],["Teléfono",player.phone||"—"],["Instagram",player.instagram||"—"],["Nacionalidad",player.nationality||"—"],["Edad",player.age?player.age+" años":"—"],["Agente",player.agent||"—"]].map(([l,v])=>(
             <div key={l} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"12px 16px" }}>
               <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:700 }}>{l}</div>
               <div style={{ fontSize:14,color:"#e5e7eb",fontWeight:600 }}>{v}</div>
@@ -279,7 +392,7 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
 
       {tab==="sports"&&(
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
-          {[["Deporte",player.sport],["Posición",player.position],["Pie dominante",player.foot],["Altura",player.height?player.height+" cm":"—"],["Peso",player.weight?player.weight+" kg":"—"],["Universidad",player.university],["Estado USA",player.state||"—"],["División","D1"],["% Beca",player.scholarshipPct+"%"],["Inicio",player.startDate||"—"],["Fin contrato",player.contractEnd||"—"]].map(([l,v])=>(
+          {[["Deporte",player.sport],["Posición",player.position],["Pie dominante",player.foot],["Altura",player.height?player.height+" cm":"—"],["Peso",player.weight?player.weight+" kg":"—"],["Universidad",player.university||"—"],["Estado USA",player.state||"—"],["% Beca",player.scholarshipPct+"%"],["Inicio",player.startDate||"—"],["Fin contrato",player.contractEnd||"—"]].map(([l,v])=>(
             <div key={l} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"12px 16px" }}>
               <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:700 }}>{l}</div>
               <div style={{ fontSize:14,color:l==="% Beca"?"#6366f1":"#e5e7eb",fontWeight:700 }}>{v}</div>
@@ -302,16 +415,12 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
               </div>
             ))}
           </div>
-          {[["High School",player.highSchool||"—"],["Graduación",player.graduationYear||"—"],["Carrera (Major)",player.major||"—"],["Nivel inglés",player.englishLevel||"—"]].map(([l,v])=>(
+          {[["High School",player.highSchool||"—"],["Graduación",player.graduationYear||"—"],["Carrera",player.major||"—"],["Nivel inglés",player.englishLevel||"—"]].map(([l,v])=>(
             <div key={l} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"12px 16px" }}>
               <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:700 }}>{l}</div>
               <div style={{ fontSize:14,color:"#e5e7eb",fontWeight:600 }}>{v}</div>
             </div>
           ))}
-          <div style={{ gridColumn:"1/-1",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"16px 18px" }}>
-            <div style={{ display:"flex",justifyContent:"space-between",marginBottom:8 }}><span style={{ fontSize:13,color:"#9ca3af",fontWeight:600 }}>GPA</span><span style={{ fontSize:14,fontWeight:900,color:player.gpa>=3.5?"#22c55e":player.gpa>=3?"#f59e0b":"#ef4444" }}>{player.gpa||0} / 4.0</span></div>
-            <Bar value={player.gpa||0} max={4} color={player.gpa>=3.5?"#22c55e":player.gpa>=3?"#f59e0b":"#ef4444"} h={8}/>
-          </div>
         </div>
       )}
 
@@ -323,17 +432,22 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
           </div>
           {(!player.offers||player.offers.length===0)&&<div style={{ textAlign:"center",padding:"50px 20px",color:"#4b5563" }}><div style={{ fontSize:36,marginBottom:10 }}>🏫</div><div style={{ fontSize:15,fontWeight:600,color:"#6b7280" }}>Sin ofertas registradas</div></div>}
           <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-            {(player.offers||[]).sort((a,b)=>b.scholarshipPct-a.scholarshipPct).map(offer=>(
+            {(player.offers||[]).sort((a,b)=>(b.amount||0)-(a.amount||0)).map(offer=>(
               <div key={offer.id} style={{ background:offer.status==="Elegida ✓"?"rgba(16,185,129,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${offer.status==="Elegida ✓"?"rgba(16,185,129,0.25)":"rgba(255,255,255,0.07)"}`,borderRadius:14,padding:"16px 18px" }}>
                 <div style={{ display:"flex",alignItems:"flex-start",gap:14 }}>
-                  <div style={{ width:44,height:44,background:"rgba(255,255,255,0.06)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0 }}>🏛️</div>
+                  <UniLogo name={offer.university} size={44}/>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:6 }}>
                       <span style={{ fontSize:16,fontWeight:800,color:"#f9fafb" }}>{offer.university}</span>
                       <OfferBadge status={offer.status}/>
                       <Pill label={offer.division} color="#6b7280"/>
                     </div>
-                    <div style={{ fontSize:13,color:"#9ca3af",marginBottom:8 }}>{offer.state} · Beca: <span style={{ color:"#6366f1",fontWeight:800 }}>{offer.scholarshipPct}%</span></div>
+                    <div style={{ display:"flex",gap:16,flexWrap:"wrap",fontSize:13,color:"#9ca3af",marginBottom:8 }}>
+                      <span>{offer.state}</span>
+                      {offer.amount&&<span style={{ color:"#22c55e",fontWeight:800 }}>{Number(offer.amount).toLocaleString()}€/año</span>}
+                      {offer.season&&<span style={{ color:"#f59e0b",fontWeight:700 }}>{offer.season}</span>}
+                      <span>Beca: <span style={{ color:"#6366f1",fontWeight:800 }}>{offer.scholarshipPct}%</span></span>
+                    </div>
                     {offer.notes&&<div style={{ fontSize:12,color:"#6b7280",fontStyle:"italic" }}>{offer.notes}</div>}
                     <div style={{ marginTop:10 }}><Bar value={offer.scholarshipPct} max={100} color={OFFER_COLORS[offer.status]||"#6366f1"} h={4}/></div>
                   </div>
@@ -358,19 +472,19 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
             <StatCard label="Pendiente" value={`${pending}€`} color={pending>0?"#f59e0b":"#22c55e"} icon={Ic.alert}/>
           </div>
           <Card>
-            <div style={{ fontSize:10,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:14 }}>Estructura de pagos FutbolU Agency</div>
+            <div style={{ fontSize:10,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:14 }}>Estructura de pagos FUTBOLUAGENCY</div>
             {saving&&<div style={{ fontSize:12,color:"#6366f1",marginBottom:10 }}>Guardando...</div>}
             <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-              <PaymentRow label="Pago inicial" amount="900" payment={player.payment1} onToggle={a=>handlePayment(1,a)}/>
-              <PaymentRow label="Segundo pago" amount="1.800" payment={player.payment2} onToggle={a=>handlePayment(2,a)}/>
+              <PaymentRow label="Pago inicial" amount="900" payment={player.payment1||{paid:false}} onToggle={a=>handlePayment(1,a)}/>
+              <PaymentRow label="Segundo pago" amount="1.800" payment={player.payment2||{paid:false}} onToggle={a=>handlePayment(2,a)}/>
             </div>
           </Card>
           <Card>
-            <div style={{ fontSize:10,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:14 }}>Cobros por socio (este cliente)</div>
+            <div style={{ fontSize:10,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:14 }}>Cobros por socio</div>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
               {AGENTS.map(agent=>{
-                const p1=player.payment1.paid&&player.payment1.paidBy===agent?900:0;
-                const p2=player.payment2.paid&&player.payment2.paidBy===agent?1800:0;
+                const p1=player.payment1?.paid&&player.payment1?.paidBy===agent?900:0;
+                const p2=player.payment2?.paid&&player.payment2?.paidBy===agent?1800:0;
                 return (
                   <div key={agent} style={{ background:"rgba(255,255,255,0.03)",border:`1px solid ${agent==="Moha"?"rgba(99,102,241,0.2)":"rgba(245,158,11,0.2)"}`,borderRadius:12,padding:"14px 16px" }}>
                     <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:10 }}>
@@ -408,48 +522,42 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
 
       {editModal&&<PlayerModal initial={player} onClose={()=>setEditModal(false)} onSave={async(p)=>{ await supabase.from("players").update(playerToDb(p)).eq("id",p.id); await onRefresh(); }}/>}
       {offerModal&&<OfferModal onClose={()=>setOfferModal(false)} onAdd={addOffer}/>}
+      {publicModal&&<PublicProfile player={player} onClose={()=>setPublicModal(false)}/>}
     </div>
   );
 };
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [nav, setNav] = useState("dashboard");
-  const [selected, setSelected] = useState(null);
-  const [search, setSearch] = useState("");
-  const [fSport, setFSport] = useState("Todos");
-  const [fStatus, setFStatus] = useState("Todos");
-  const [fAgent, setFAgent] = useState("Todos");
-  const [addModal, setAddModal] = useState(false);
+  const [players,setPlayers] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [nav,setNav] = useState("dashboard");
+  const [selected,setSelected] = useState(null);
+  const [search,setSearch] = useState("");
+  const [fSport,setFSport] = useState("Todos");
+  const [fStatus,setFStatus] = useState("Todos");
+  const [fAgent,setFAgent] = useState("Todos");
+  const [addModal,setAddModal] = useState(false);
 
   const loadPlayers = useCallback(async () => {
     setLoading(true);
-    const { data: rows } = await supabase.from("players").select("*").order("created_at", { ascending: false });
-    if (!rows) { setLoading(false); return; }
-    const { data: allOffers } = await supabase.from("offers").select("*");
-    const { data: allTimeline } = await supabase.from("timeline").select("*").order("date", { ascending: true });
-    const mapped = rows.map(r => dbToPlayer(
-      r,
-      (allOffers||[]).filter(o=>o.player_id===r.id),
-      (allTimeline||[]).filter(t=>t.player_id===r.id)
-    ));
-    setPlayers(mapped);
-    if (selected) {
-      const updated = mapped.find(p => p.id === selected.id);
-      if (updated) setSelected(updated);
-    }
+    try {
+      const { data:rows } = await supabase.from("players").select("*").order("created_at",{ascending:false});
+      if(!rows||rows.length===0){ setPlayers([]); setLoading(false); return; }
+      const { data:allOffers } = await supabase.from("offers").select("*");
+      const { data:allTimeline } = await supabase.from("timeline").select("*").order("date",{ascending:true});
+      const mapped = rows.map(r=>dbToPlayer(r,(allOffers||[]).filter(o=>o.player_id===r.id),(allTimeline||[]).filter(t=>t.player_id===r.id)));
+      setPlayers(mapped);
+      setSelected(prev => prev ? (mapped.find(p=>p.id===prev.id)||prev) : null);
+    } catch(e){ console.error(e); }
     setLoading(false);
-  }); // eslint-disable-line
+  },[]); // eslint-disable-line
 
-  useEffect(() => { loadPlayers(); }, []); // eslint-disable-line
+  useEffect(()=>{ loadPlayers(); },[]); // eslint-disable-line
 
   const addPlayer = async (p) => {
     const { data } = await supabase.from("players").insert(playerToDb(p)).select().single();
-    if (data) {
-      await supabase.from("timeline").insert({ player_id: data.id, date: new Date().toISOString().split("T")[0], event: "Perfil creado", type: "contact" });
-    }
+    if(data) await supabase.from("timeline").insert({player_id:data.id,date:new Date().toISOString().split("T")[0],event:"Perfil creado",type:"contact"});
     await loadPlayers();
   };
 
@@ -458,45 +566,41 @@ export default function App() {
     return (p.name.toLowerCase().includes(s)||p.university?.toLowerCase().includes(s)||p.nationality?.toLowerCase().includes(s))&&(fSport==="Todos"||p.sport===fSport)&&(fStatus==="Todos"||p.status===fStatus)&&(fAgent==="Todos"||p.agent===fAgent);
   }),[players,search,fSport,fStatus,fAgent]);
 
-  const totalFees = players.length*2700;
-  const totalColl = players.reduce((s,p)=>s+(p.payment1.paid?900:0)+(p.payment2.paid?1800:0),0);
-  const totalPend = totalFees-totalColl;
-  const agentStats = AGENTS.map(agent=>({
+  const totalFees=players.length*2700;
+  const totalColl=players.reduce((s,p)=>s+(p.payment1?.paid?900:0)+(p.payment2?.paid?1800:0),0);
+  const totalPend=totalFees-totalColl;
+  const agentStats=AGENTS.map(agent=>({
     agent,
-    total:players.reduce((s,p)=>s+(p.payment1.paid&&p.payment1.paidBy===agent?900:0)+(p.payment2.paid&&p.payment2.paidBy===agent?1800:0),0),
-    p1:players.filter(p=>p.payment1.paid&&p.payment1.paidBy===agent).length,
-    p2:players.filter(p=>p.payment2.paid&&p.payment2.paidBy===agent).length,
+    total:players.reduce((s,p)=>s+(p.payment1?.paid&&p.payment1?.paidBy===agent?900:0)+(p.payment2?.paid&&p.payment2?.paidBy===agent?1800:0),0),
+    p1:players.filter(p=>p.payment1?.paid&&p.payment1?.paidBy===agent).length,
+    p2:players.filter(p=>p.payment2?.paid&&p.payment2?.paidBy===agent).length,
   }));
-  const allOffers = players.flatMap(p=>(p.offers||[]).map(o=>({...o,playerName:p.name,playerId:p.id})));
+  const allOffers=players.flatMap(p=>(p.offers||[]).map(o=>({...o,playerName:p.name,playerId:p.id})));
+  const go=(n)=>{ setNav(n); setSelected(null); };
 
-  const navItems = [
-    { id:"dashboard",label:"Dashboard",icon:Ic.dash },
-    { id:"players",label:"Jugadores",icon:Ic.players },
-    { id:"offers",label:"Universidades",icon:Ic.uni },
-    { id:"payments",label:"Pagos",icon:Ic.fin },
-  ];
-  const go = (n) => { setNav(n); setSelected(null); };
+  const navItems=[{id:"dashboard",label:"Dashboard",icon:Ic.dash},{id:"players",label:"Jugadores",icon:Ic.players},{id:"offers",label:"Universidades",icon:Ic.uni},{id:"payments",label:"Pagos",icon:Ic.fin}];
 
-  if (loading) return (
+  if(loading) return (
     <div style={{ fontFamily:"'Syne','DM Sans',sans-serif",background:"#0d0f1a",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap')`}</style>
-      <div style={{ width:44,height:44,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center" }}>{Ic.ball}</div>
-      <div style={{ fontSize:16,fontWeight:700,color:"#6b7280" }}>Cargando FutbolU CRM...</div>
+      <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>{ e.target.style.display="none"; }} style={{ height:60,objectFit:"contain" }}/>
+      <div style={{ fontSize:16,fontWeight:700,color:"#6b7280" }}>Cargando FUTBOLUAGENCY CRM...</div>
     </div>
   );
 
   return (
     <div style={{ fontFamily:"'Syne','DM Sans',sans-serif",background:"#0d0f1a",color:"#f9fafb",minHeight:"100vh",display:"flex" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}select option{background:#181b2a;color:#f9fafb}.prow:hover{border-color:rgba(99,102,241,.3)!important;background:linear-gradient(145deg,#1e2135,#151726)!important}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}select option{background:#181b2a;color:#f9fafb}.prow:hover{border-color:rgba(99,102,241,.3)!important}`}</style>
 
       {/* Sidebar */}
       <div style={{ width:228,background:"#0a0c16",borderRight:"1px solid rgba(255,255,255,0.05)",padding:"24px 14px",display:"flex",flexDirection:"column",gap:3,flexShrink:0 }}>
         <div style={{ padding:"0 8px 24px" }}>
-          <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-            <div style={{ width:38,height:38,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(99,102,241,0.4)" }}>{Ic.ball}</div>
+          <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>{ e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} style={{ height:48,objectFit:"contain",maxWidth:"100%" }}/>
+          <div style={{ display:"none",alignItems:"center",gap:10 }}>
+            <div style={{ width:38,height:38,background:"linear-gradient(135deg,#c8102e,#002868)",borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,color:"#fff" }}>FUA</div>
             <div>
-              <div style={{ fontSize:15,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5 }}>FutbolU</div>
-              <div style={{ fontSize:9,color:"#6b7280",fontWeight:700,letterSpacing:1.5,textTransform:"uppercase" }}>Agency CRM</div>
+              <div style={{ fontSize:13,fontWeight:800,color:"#f9fafb",letterSpacing:0.5 }}>FUTBOLUAGENCY</div>
+              <div style={{ fontSize:9,color:"#6b7280",fontWeight:700,letterSpacing:1.5,textTransform:"uppercase" }}>CRM</div>
             </div>
           </div>
         </div>
@@ -505,17 +609,12 @@ export default function App() {
             <span style={{ opacity:nav===item.id?1:0.6 }}>{item.icon}</span>{item.label}
           </button>
         ))}
-        <button onClick={loadPlayers} style={{ display:"flex",alignItems:"center",gap:8,padding:"10px 13px",borderRadius:11,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:"none",color:"#4b5563",fontFamily:"inherit",marginTop:4 }}>
-          {Ic.refresh} Actualizar
-        </button>
+        <button onClick={loadPlayers} style={{ display:"flex",alignItems:"center",gap:8,padding:"10px 13px",borderRadius:11,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:"none",color:"#4b5563",fontFamily:"inherit",marginTop:4 }}>{Ic.refresh} Actualizar</button>
         <div style={{ marginTop:"auto",padding:"14px 8px 0",borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-          {agentStats.map((s)=>(
+          {agentStats.map(s=>(
             <div key={s.agent} style={{ display:"flex",gap:9,alignItems:"center",padding:"7px 4px" }}>
               <div style={{ width:30,height:30,borderRadius:"50%",background:s.agent==="Moha"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"linear-gradient(135deg,#f59e0b,#f97316)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff" }}>{s.agent==="Moha"?"M":"I"}</div>
-              <div>
-                <div style={{ fontSize:12,fontWeight:700,color:"#e5e7eb" }}>{s.agent}</div>
-                <div style={{ fontSize:10,color:"#6b7280" }}>{s.total}€ cobrados</div>
-              </div>
+              <div><div style={{ fontSize:12,fontWeight:700,color:"#e5e7eb" }}>{s.agent}</div><div style={{ fontSize:10,color:"#6b7280" }}>{s.total}€ cobrados</div></div>
             </div>
           ))}
         </div>
@@ -523,18 +622,14 @@ export default function App() {
 
       {/* Main */}
       <div style={{ flex:1,overflowY:"auto",padding:"30px 32px" }}>
-
         {nav==="dashboard"&&(
           <div>
-            <div style={{ marginBottom:24 }}>
-              <h1 style={{ fontSize:27,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5 }}>Dashboard</h1>
-              <p style={{ color:"#6b7280",fontSize:14,marginTop:4 }}>Resumen general · FutbolU Agency</p>
-            </div>
+            <div style={{ marginBottom:24 }}><h1 style={{ fontSize:27,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5 }}>Dashboard</h1><p style={{ color:"#6b7280",fontSize:14,marginTop:4 }}>Resumen general · FUTBOLUAGENCY</p></div>
             <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:22 }}>
               <StatCard label="Atletas" value={players.length} sub={`${players.filter(p=>p.status==="Becado").length} becados`} color="#6366f1" icon={Ic.players}/>
               <StatCard label="Revenue total" value={totalFees>0?`${(totalFees/1000).toFixed(1)}k€`:"0€"} sub="a 2.700€/atleta" color="#8b5cf6" icon={Ic.fin}/>
-              <StatCard label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#22c55e" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}% efectividad`:"—"} icon={Ic.check}/>
-              <StatCard label="Pendiente" value={`${totalPend.toLocaleString()}€`} color="#f59e0b" sub={`${players.filter(p=>!p.payment2.paid).length} pagos finales abiertos`} icon={Ic.alert}/>
+              <StatCard label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#22c55e" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"—"} icon={Ic.check}/>
+              <StatCard label="Pendiente" value={`${totalPend.toLocaleString()}€`} color="#f59e0b" sub={`${players.filter(p=>!p.payment2?.paid).length} pagos abiertos`} icon={Ic.alert}/>
             </div>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:18 }}>
               <Card>
@@ -568,17 +663,14 @@ export default function App() {
               </Card>
               <Card style={{ gridColumn:"1/-1" }}>
                 <div style={{ fontSize:11,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:14 }}>Pagos pendientes</div>
-                {players.filter(p=>!p.payment1.paid||!p.payment2.paid).length===0
+                {players.filter(p=>!p.payment1?.paid||!p.payment2?.paid).length===0
                   ?<div style={{ textAlign:"center",padding:20,color:"#22c55e",fontWeight:700 }}>✓ Todos los pagos al día</div>
                   :<div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:10 }}>
-                    {players.filter(p=>!p.payment1.paid||!p.payment2.paid).map(p=>(
+                    {players.filter(p=>!p.payment1?.paid||!p.payment2?.paid).map(p=>(
                       <div key={p.id} onClick={()=>{ setNav("players"); setSelected(p); }} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,cursor:"pointer" }}>
                         <Avatar name={p.name} size={36}/>
-                        <div style={{ flex:1 }}>
-                          <div style={{ fontSize:13,fontWeight:700,color:"#e5e7eb" }}>{p.name}</div>
-                          <div style={{ fontSize:11,color:"#f59e0b" }}>{!p.payment1.paid?"Pago inicial (900€)":"Segundo pago (1.800€)"}</div>
-                        </div>
-                        <span style={{ fontSize:14,fontWeight:900,color:"#f59e0b" }}>{!p.payment1.paid?"900€":"1.800€"}</span>
+                        <div style={{ flex:1 }}><div style={{ fontSize:13,fontWeight:700,color:"#e5e7eb" }}>{p.name}</div><div style={{ fontSize:11,color:"#f59e0b" }}>{!p.payment1?.paid?"Pago inicial (900€)":"Segundo pago (1.800€)"}</div></div>
+                        <span style={{ fontSize:14,fontWeight:900,color:"#f59e0b" }}>{!p.payment1?.paid?"900€":"1.800€"}</span>
                       </div>
                     ))}
                   </div>}
@@ -604,18 +696,15 @@ export default function App() {
                 </select>
               ))}
             </div>
-            {players.length===0&&<div style={{ textAlign:"center",padding:60,color:"#6b7280" }}><div style={{ fontSize:40,marginBottom:12 }}>👥</div><div style={{ fontSize:16,fontWeight:700,marginBottom:6 }}>Sin atletas todavía</div><div style={{ fontSize:13 }}>Crea el primer perfil con el botón "Nuevo atleta"</div></div>}
+            {players.length===0&&<div style={{ textAlign:"center",padding:60,color:"#6b7280" }}><div style={{ fontSize:40,marginBottom:12 }}>👥</div><div style={{ fontSize:16,fontWeight:700,marginBottom:6 }}>Sin atletas todavía</div><div style={{ fontSize:13 }}>Crea el primer perfil con "Nuevo atleta"</div></div>}
             <div style={{ display:"flex",flexDirection:"column",gap:7 }}>
               {filtered.map(p=>{
-                const paid=(p.payment1.paid?900:0)+(p.payment2.paid?1800:0);
+                const paid=(p.payment1?.paid?900:0)+(p.payment2?.paid?1800:0);
                 const pct=(paid/2700)*100;
                 return (
                   <div key={p.id} className="prow" onClick={()=>setSelected(p)} style={{ display:"flex",alignItems:"center",gap:14,background:"linear-gradient(145deg,#181b2a,#111420)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:14,padding:"14px 18px",cursor:"pointer",transition:"all .15s" }}>
                     <Avatar name={p.name} size={44}/>
-                    <div style={{ flex:2 }}>
-                      <div style={{ fontSize:15,fontWeight:800,color:"#f9fafb" }}>{p.name}</div>
-                      <div style={{ fontSize:12,color:"#6b7280",marginTop:2 }}>{p.sport} · {p.nationality} · {p.position}</div>
-                    </div>
+                    <div style={{ flex:2 }}><div style={{ fontSize:15,fontWeight:800,color:"#f9fafb" }}>{p.name}</div><div style={{ fontSize:12,color:"#6b7280",marginTop:2 }}>{p.sport} · {p.nationality} · {p.position}</div></div>
                     <Badge status={p.status}/>
                     <div style={{ textAlign:"center",minWidth:64 }}><div style={{ fontSize:10,color:"#6b7280",marginBottom:2 }}>Beca</div><div style={{ fontSize:15,fontWeight:900,color:"#6366f1" }}>{p.scholarshipPct}%</div></div>
                     <div style={{ textAlign:"center",minWidth:56 }}><div style={{ fontSize:10,color:"#6b7280",marginBottom:2 }}>GPA</div><div style={{ fontSize:15,fontWeight:900,color:p.gpa>=3.5?"#22c55e":p.gpa>=3?"#f59e0b":"#ef4444" }}>{p.gpa||"—"}</div></div>
@@ -640,7 +729,7 @@ export default function App() {
             <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:22 }}>
               <StatCard label="Total ofertas" value={allOffers.length} color="#6366f1" icon={Ic.uni}/>
               <StatCard label="Confirmadas" value={allOffers.filter(o=>o.status==="Elegida ✓").length} color="#22c55e" icon={Ic.check}/>
-              <StatCard label="En negociación" value={allOffers.filter(o=>["Oferta formal","Pre-aceptada","Interesada"].includes(o.status)).length} color="#f59e0b" icon={Ic.star}/>
+              <StatCard label="En negociación" value={allOffers.filter(o=>["Oferta formal","Pre-aceptada","Interesada"].includes(o.status)).length} color="#f59e0b" icon={Ic.trophy}/>
             </div>
             {players.filter(p=>p.offers?.length>0).length===0&&<div style={{ textAlign:"center",padding:60,color:"#6b7280" }}><div style={{ fontSize:40,marginBottom:12 }}>🏛️</div><div style={{ fontSize:16,fontWeight:700 }}>Sin ofertas todavía</div></div>}
             <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
@@ -650,12 +739,18 @@ export default function App() {
                     <Avatar name={p.name} size={42}/>
                     <div><div style={{ fontSize:15,fontWeight:800,color:"#f9fafb" }}>{p.name}</div><div style={{ fontSize:12,color:"#6b7280" }}>{p.sport} · {p.offers.length} {p.offers.length===1?"oferta":"ofertas"}</div></div>
                   </div>
-                  <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:10 }}>
-                    {p.offers.sort((a,b)=>b.scholarshipPct-a.scholarshipPct).map(o=>(
+                  <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10 }}>
+                    {p.offers.sort((a,b)=>(b.amount||0)-(a.amount||0)).map(o=>(
                       <div key={o.id} onClick={()=>{ setNav("players"); setSelected(p); }} style={{ background:o.status==="Elegida ✓"?"rgba(16,185,129,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${OFFER_COLORS[o.status]||"#374151"}33`,borderRadius:12,padding:"14px",cursor:"pointer" }}>
-                        <div style={{ fontSize:14,fontWeight:800,color:"#f9fafb",marginBottom:5 }}>{o.university}</div>
-                        <div style={{ fontSize:12,color:"#9ca3af",marginBottom:8 }}>{o.state} · {o.division}</div>
-                        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}><span style={{ fontSize:20,fontWeight:900,color:"#6366f1" }}>{o.scholarshipPct}%</span><OfferBadge status={o.status}/></div>
+                        <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
+                          <UniLogo name={o.university} size={32}/>
+                          <div style={{ fontSize:14,fontWeight:800,color:"#f9fafb" }}>{o.university}</div>
+                        </div>
+                        <div style={{ fontSize:11,color:"#9ca3af",marginBottom:6 }}>{o.state} · {o.division}</div>
+                        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+                          <div>{o.amount&&<div style={{ fontSize:16,fontWeight:900,color:"#22c55e" }}>{Number(o.amount).toLocaleString()}€</div>}{o.season&&<div style={{ fontSize:11,color:"#f59e0b" }}>{o.season}</div>}</div>
+                          <OfferBadge status={o.status}/>
+                        </div>
                         <Bar value={o.scholarshipPct} max={100} color={OFFER_COLORS[o.status]||"#6366f1"} h={4}/>
                       </div>
                     ))}
@@ -673,14 +768,14 @@ export default function App() {
               <StatCard label="Revenue total" value={`${totalFees.toLocaleString()}€`} color="#6366f1" icon={Ic.fin}/>
               <StatCard label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#22c55e" icon={Ic.check} sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"—"}/>
               <StatCard label="Pendiente" value={`${totalPend.toLocaleString()}€`} color="#f59e0b" icon={Ic.alert}/>
-              <StatCard label="Completos" value={players.filter(p=>p.payment1.paid&&p.payment2.paid).length} color="#10b981" icon={Ic.trophy} sub={`de ${players.length} total`}/>
+              <StatCard label="Completos" value={players.filter(p=>p.payment1?.paid&&p.payment2?.paid).length} color="#10b981" icon={Ic.trophy} sub={`de ${players.length} total`}/>
             </div>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:18 }}>
               {agentStats.map(s=>(
                 <Card key={s.agent} style={{ border:`1px solid ${s.agent==="Moha"?"rgba(99,102,241,0.2)":"rgba(245,158,11,0.2)"}` }}>
                   <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:16 }}>
                     <div style={{ width:44,height:44,borderRadius:"50%",background:s.agent==="Moha"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"linear-gradient(135deg,#f59e0b,#f97316)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff" }}>{s.agent==="Moha"?"M":"I"}</div>
-                    <div style={{ flex:1 }}><div style={{ fontSize:16,fontWeight:800,color:"#f9fafb" }}>{s.agent}</div><div style={{ fontSize:11,color:"#6b7280" }}>Socio FutbolU Agency</div></div>
+                    <div style={{ flex:1 }}><div style={{ fontSize:16,fontWeight:800,color:"#f9fafb" }}>{s.agent}</div><div style={{ fontSize:11,color:"#6b7280" }}>Socio FUTBOLUAGENCY</div></div>
                     <div style={{ fontSize:26,fontWeight:900,color:s.agent==="Moha"?"#818cf8":"#fbbf24" }}>{s.total}€</div>
                   </div>
                   <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
@@ -700,15 +795,15 @@ export default function App() {
               {players.length===0&&<div style={{ color:"#4b5563",fontSize:13,textAlign:"center",padding:20 }}>Sin atletas todavía</div>}
               <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
                 {players.map(p=>{
-                  const paid=(p.payment1.paid?900:0)+(p.payment2.paid?1800:0);
+                  const paid=(p.payment1?.paid?900:0)+(p.payment2?.paid?1800:0);
                   return (
                     <div key={p.id} onClick={()=>{ setNav("players"); setSelected(p); }} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"rgba(255,255,255,0.03)",borderRadius:12,border:"1px solid rgba(255,255,255,0.05)",cursor:"pointer" }}>
                       <Avatar name={p.name} size={36}/>
                       <div style={{ flex:2 }}>
                         <div style={{ fontSize:14,fontWeight:700,color:"#f9fafb" }}>{p.name}</div>
                         <div style={{ display:"flex",gap:7,marginTop:4 }}>
-                          <span style={{ fontSize:10,padding:"2px 8px",borderRadius:6,background:p.payment1.paid?"rgba(34,197,94,0.15)":"rgba(245,158,11,0.12)",color:p.payment1.paid?"#22c55e":"#f59e0b",fontWeight:700 }}>P1: {p.payment1.paid?`✓ ${p.payment1.paidBy}`:"Pendiente"}</span>
-                          <span style={{ fontSize:10,padding:"2px 8px",borderRadius:6,background:p.payment2.paid?"rgba(34,197,94,0.15)":"rgba(245,158,11,0.12)",color:p.payment2.paid?"#22c55e":"#f59e0b",fontWeight:700 }}>P2: {p.payment2.paid?`✓ ${p.payment2.paidBy}`:"Pendiente"}</span>
+                          <span style={{ fontSize:10,padding:"2px 8px",borderRadius:6,background:p.payment1?.paid?"rgba(34,197,94,0.15)":"rgba(245,158,11,0.12)",color:p.payment1?.paid?"#22c55e":"#f59e0b",fontWeight:700 }}>P1: {p.payment1?.paid?`✓ ${p.payment1.paidBy}`:"Pendiente"}</span>
+                          <span style={{ fontSize:10,padding:"2px 8px",borderRadius:6,background:p.payment2?.paid?"rgba(34,197,94,0.15)":"rgba(245,158,11,0.12)",color:p.payment2?.paid?"#22c55e":"#f59e0b",fontWeight:700 }}>P2: {p.payment2?.paid?`✓ ${p.payment2.paidBy}`:"Pendiente"}</span>
                         </div>
                       </div>
                       <div style={{ flex:1.5,minWidth:120 }}><Bar value={paid} max={2700} color={paid>=2700?"#22c55e":paid>0?"#f59e0b":"#374151"}/></div>

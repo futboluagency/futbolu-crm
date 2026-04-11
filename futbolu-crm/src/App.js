@@ -191,7 +191,6 @@ const PlayerDetail = ({ player, onBack, onUpdate, onRefresh }) => {
 
   const handlePayment = async (num, agent) => {
     setSaving(true);
-    const key = `payment${num}`;
     const date = agent ? new Date().toISOString().split("T")[0] : null;
     const dbUpdate = num===1
       ? { payment1_paid: !!agent, payment1_paid_by: agent, payment1_date: date }
@@ -444,7 +443,7 @@ export default function App() {
     setLoading(false);
   }, [selected]);
 
-  useEffect(() => { loadPlayers(); }, []);
+  useEffect(() => { loadPlayers(); }, [loadPlayers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addPlayer = async (p) => {
     const { data } = await supabase.from("players").insert(playerToDb(p)).select().single();

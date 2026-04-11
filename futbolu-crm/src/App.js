@@ -561,6 +561,131 @@ const AgentLinkRow = ({ agent, link, IcCopy }) => {
 };
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
+// ─── PUBLIC PLAYER PAGE (for coaches) ────────────────────────────────────────
+const PublicPlayerPage = ({ playerId }) => {
+  const [player,setPlayer] = useState(null);
+  const [loading,setLoading] = useState(true);
+
+  useEffect(()=>{
+    const load = async () => {
+      const {data:row} = await supabase.from("players").select("*").eq("id",playerId).single();
+      if(!row){ setLoading(false); return; }
+      const {data:offers} = await supabase.from("offers").select("*").eq("player_id",playerId);
+      setPlayer(dbToPlayer(row, offers||[], []));
+      setLoading(false);
+    };
+    load();
+  },[playerId]);
+
+  if(loading) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12 }}>
+      <img src="/logo.png" alt="FUA" onError={e=>e.target.style.display="none"} style={{ height:44,objectFit:"contain" }}/>
+      <div style={{ fontSize:13,color:"#374151" }}>Loading athlete profile...</div>
+    </div>
+  );
+
+  if(!player) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12 }}>
+      <div style={{ fontSize:32 }}>🔍</div>
+      <div style={{ fontSize:16,fontWeight:600,color:"#f9fafb" }}>Profile not found</div>
+      <div style={{ fontSize:13,color:"#374151" }}>This athlete profile may have been removed.</div>
+    </div>
+  );
+
+  const sd = player.sportData || {};
+  const sportFields = SPORT_FIELDS[player.sport] || [];
+
+  return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",color:"#f9fafb" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07);border-radius:4px}`}</style>
+
+      {/* Header */}
+      <div style={{ background:"#080a10",borderBottom:"1px solid rgba(255,255,255,0.05)",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+        <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:32,objectFit:"contain" }}/>
+        <div style={{ fontSize:11,color:"#374151",fontWeight:500 }}>Official Athlete Profile</div>
+      </div>
+
+      <div style={{ maxWidth:680,margin:"0 auto",padding:"32px 20px 60px" }}>
+        {/* Hero */}
+        <div style={{ background:"#0d0f16",border:"1px solid rgba(255,255,255,0.06)",borderRadius:16,padding:"28px",marginBottom:16 }}>
+          <div style={{ display:"flex",gap:20,alignItems:"center",flexWrap:"wrap" }}>
+            <Avatar name={player.name} size={88} photoUrl={player.photoUrl}/>
+            <div style={{ flex:1,minWidth:200 }}>
+              <h1 style={{ fontSize:28,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5,marginBottom:8 }}>{player.name}</h1>
+              <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:12 }}>
+                <span style={{ padding:"4px 12px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(99,102,241,0.12)",color:"#818cf8",border:"1px solid rgba(99,102,241,0.2)" }}>{player.sport}</span>
+                {player.position&&player.position!=="N/A"&&<span style={{ padding:"4px 12px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(139,92,246,0.1)",color:"#a78bfa",border:"1px solid rgba(139,92,246,0.2)" }}>{player.position}</span>}
+                {player.nationality&&<span style={{ padding:"4px 12px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(59,130,246,0.1)",color:"#60a5fa",border:"1px solid rgba(59,130,246,0.2)" }}>{player.nationality}</span>}
+                {player.age&&<span style={{ padding:"4px 12px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(255,255,255,0.05)",color:"#9ca3af",border:"1px solid rgba(255,255,255,0.08)" }}>{player.age} years old</span>}
+              </div>
+              {player.videoUrl&&(
+                <a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ display:"inline-flex",alignItems:"center",gap:8,padding:"10px 18px",background:"#ef4444",borderRadius:9,textDecoration:"none",color:"#fff",fontSize:13,fontWeight:700 }}>
+                  ▶ Watch Highlight Video
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Academic */}
+        <div style={{ background:"#0d0f16",border:"1px solid rgba(255,255,255,0.06)",borderRadius:16,padding:"24px",marginBottom:12 }}>
+          <div style={{ fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Academic Profile</div>
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 }}>
+            {[["GPA",player.gpa||"—",player.gpa>=3.5?"#10b981":player.gpa>=3?"#f59e0b":"#9ca3af"],["SAT",player.satScore||"—","#6366f1"],["TOEFL",player.toeflScore||"—","#8b5cf6"],["English",player.englishLevel||"—","#3b82f6"]].map(([l,v,c])=>(
+              <div key={l} style={{ background:"rgba(255,255,255,0.03)",border:`1px solid ${c}15`,borderRadius:10,padding:"14px 10px",textAlign:"center" }}>
+                <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{l}</div>
+                <div style={{ fontSize:22,fontWeight:800,color:c }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+            {[["High School",player.highSchool],["Graduation Year",player.graduationYear],["Intended Major",player.major],["English Level",player.englishLevel]].filter(([,v])=>v).map(([l,v])=>(
+              <div key={l} style={{ background:"rgba(255,255,255,0.02)",borderRadius:9,padding:"10px 14px" }}>
+                <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>{l}</div>
+                <div style={{ fontSize:13,color:"#e5e7eb",fontWeight:600 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Athletic */}
+        <div style={{ background:"#0d0f16",border:"1px solid rgba(255,255,255,0.06)",borderRadius:16,padding:"24px",marginBottom:12 }}>
+          <div style={{ fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Athletic Profile</div>
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:10 }}>
+            {[["Sport",player.sport],["Position",player.position],["Height",player.height?`${player.height} cm`:"—"],["Weight",player.weight?`${player.weight} kg`:"—"],["Nationality",player.nationality],["Scholarship",`${player.scholarshipPct}%`]].filter(([,v])=>v&&v!=="—").map(([l,v])=>(
+              <div key={l} style={{ background:"rgba(255,255,255,0.02)",borderRadius:9,padding:"10px 14px" }}>
+                <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>{l}</div>
+                <div style={{ fontSize:13,color:l==="Scholarship"?"#6366f1":"#e5e7eb",fontWeight:600 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sport stats */}
+        {sportFields.length>0&&Object.values({...sd}).some(v=>v)&&(
+          <div style={{ background:"#0d0f16",border:"1px solid rgba(245,158,11,0.1)",borderRadius:16,padding:"24px",marginBottom:12 }}>
+            <div style={{ fontSize:11,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>{player.sport} Statistics</div>
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:10 }}>
+              {sportFields.map(([l,k])=>{ const v=(k==="foot"||k==="height"||k==="weight")?player[k]:sd[k]; if(!v) return null; return (
+                <div key={k} style={{ background:"rgba(245,158,11,0.04)",border:"1px solid rgba(245,158,11,0.08)",borderRadius:9,padding:"10px 14px" }}>
+                  <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>{l}</div>
+                  <div style={{ fontSize:13,color:"#fbbf24",fontWeight:700 }}>{v}</div>
+                </div>
+              ); })}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ textAlign:"center",marginTop:32,paddingTop:24,borderTop:"1px solid rgba(255,255,255,0.04)" }}>
+          <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:28,objectFit:"contain",marginBottom:8,opacity:0.5 }}/>
+          <div style={{ fontSize:11,color:"#374151" }}>Profile provided by FUTBOLUAGENCY · Athlete recruitment specialists</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [players,setPlayers]=useState([]);
   const [agents,setAgents]=useState([]);
@@ -577,6 +702,16 @@ export default function App() {
   const [currentAgent,setCurrentAgent]=useState(null); // agent from URL
 
   const agentNames=agents.length>0?agents.map(a=>a.name):["Moha","Ignacio de Béjar"];
+
+  // Check if this is a public player profile link
+  const publicPlayerId = new URLSearchParams(window.location.search).get("player");
+  if(publicPlayerId && !loading) return <PublicPlayerPage playerId={publicPlayerId}/>;
+  if(publicPlayerId && loading) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12 }}>
+      <img src="/logo.png" alt="FUA" onError={e=>e.target.style.display="none"} style={{ height:44,objectFit:"contain" }}/>
+      <div style={{ fontSize:13,color:"#374151" }}>Loading athlete profile...</div>
+    </div>
+  );
 
   // Check URL for agent link
   useEffect(()=>{

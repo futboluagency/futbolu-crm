@@ -441,9 +441,9 @@ export default function App() {
       if (updated) setSelected(updated);
     }
     setLoading(false);
-  }, [selected]);
+  }); // eslint-disable-line
 
-  useEffect(() => { loadPlayers(); }, [loadPlayers]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadPlayers(); }, []); // eslint-disable-line
 
   const addPlayer = async (p) => {
     const { data } = await supabase.from("players").insert(playerToDb(p)).select().single();

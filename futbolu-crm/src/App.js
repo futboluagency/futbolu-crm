@@ -546,6 +546,20 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
   );
 };
 
+const AgentLinkRow = ({ agent, link, IcCopy }) => {
+  const [copied,setCopied] = useState(false);
+  return (
+    <div style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(255,255,255,0.02)",borderRadius:9,border:"1px solid rgba(255,255,255,0.05)" }}>
+      <Avatar name={agent.name} size={28} photoUrl={agent.photo_url}/>
+      <div style={{ flex:1,minWidth:0 }}>
+        <div style={{ fontSize:12,fontWeight:600,color:"#e5e7eb" }}>{agent.name}</div>
+        <div style={{ fontSize:11,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{link}</div>
+      </div>
+      <button onClick={()=>{ navigator.clipboard.writeText(link); setCopied(true); setTimeout(()=>setCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(99,102,241,0.2)",background:copied?"rgba(16,185,129,0.1)":"rgba(99,102,241,0.08)",color:copied?"#10b981":"#818cf8",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>{IcCopy} {copied?"✓ Copiado":"Copiar link"}</button>
+    </div>
+  );
+};
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [players,setPlayers]=useState([]);
@@ -892,21 +906,9 @@ export default function App() {
                   <div style={{ fontSize:13,fontWeight:600,color:"#f9fafb" }}>Links de acceso directo</div>
                 </div>
                 <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                  {agents.map(a=>{
-                    const slug=a.name.split(" ")[0].toLowerCase();
-                    const link=`${window.location.origin}?agent=${slug}`;
-                    const [copied,setCopied]=useState(false);
-                    return (
-                      <div key={a.id} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(255,255,255,0.02)",borderRadius:9,border:"1px solid rgba(255,255,255,0.05)" }}>
-                        <Avatar name={a.name} size={28} photoUrl={a.photo_url}/>
-                        <div style={{ flex:1,minWidth:0 }}>
-                          <div style={{ fontSize:12,fontWeight:600,color:"#e5e7eb" }}>{a.name}</div>
-                          <div style={{ fontSize:11,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{link}</div>
-                        </div>
-                        <button onClick={()=>{ navigator.clipboard.writeText(link); setCopied(true); setTimeout(()=>setCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,border:"1px solid rgba(99,102,241,0.2)",background:copied?"rgba(16,185,129,0.1)":"rgba(99,102,241,0.08)",color:copied?"#10b981":"#818cf8",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>{I.copy} {copied?"✓ Copiado":"Copiar link"}</button>
-                      </div>
-                    );
-                  })}
+                  {agents.map(a=>{ const slug=a.name.split(" ")[0].toLowerCase(); const link=`${window.location.origin}?agent=${slug}`; return (
+                    <AgentLinkRow key={a.id} agent={a} link={link} IcCopy={I.copy}/>
+                  ); })}
                 </div>
                 <div style={{ marginTop:12,padding:"10px 12px",background:"rgba(99,102,241,0.04)",borderRadius:8,fontSize:12,color:"#6b7280" }}>
                   💡 Comparte el link con cada agente. Al abrirlo entran directamente sin necesidad de login.

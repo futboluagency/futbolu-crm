@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     service: "gmail",
     auth: {
       user: "futboluagency@gmail.com",
-      pass: "reio yyfz ykta gidz",
+      pass: "yujg isup znds mhuj",
     },
   });
 

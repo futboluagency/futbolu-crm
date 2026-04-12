@@ -159,12 +159,55 @@ const playerToDb = (p) => ({
 });
 
 // ─── PUBLIC PROFILE (ENGLISH) ─────────────────────────────────────────────────
+const EMAILJS_SERVICE = "service_lyan7nr";
+const EMAILJS_TEMPLATE = "template_ha06ovd";
+const EMAILJS_KEY = "HLXxR2Ikmu72FvHAp";
+
 const PublicProfile = ({ player, onClose }) => {
   const [copied,setCopied]=useState(false);
+  const [showEmail,setShowEmail]=useState(false);
+  const [emailTo,setEmailTo]=useState("");
+  const [coachName,setCoachName]=useState("");
+  const [message,setMessage]=useState(`I would like to introduce you to ${player.name}, a ${player.sport} athlete currently looking for scholarship opportunities at the ${player.position||""} position.\n\nAcademic: GPA ${player.gpa||"—"} · SAT ${player.satScore||"—"} · TOEFL ${player.toeflScore||"—"} · English ${player.englishLevel||"—"}\nHeight: ${player.height||"—"} cm · Nationality: ${player.nationality||"—"}\n\nWe believe ${player.name} would be an excellent addition to your program.`);
+  const [sending,setSending]=useState(false);
+  const [sent,setSent]=useState(false);
+  const [emails,setEmails]=useState([]);
+  const [emailInput,setEmailInput]=useState("");
   const url=`${window.location.origin}?player=${player.id}`;
   const copy=()=>{ navigator.clipboard.writeText(url); setCopied(true); setTimeout(()=>setCopied(false),2000); };
+
+  const addEmail = () => {
+    const e = emailInput.trim();
+    if(e && e.includes("@") && !emails.includes(e)){ setEmails(prev=>[...prev,e]); setEmailInput(""); }
+  };
+  const removeEmail = (e) => setEmails(prev=>prev.filter(x=>x!==e));
+
+  const sendEmails = async () => {
+    if(emails.length===0) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails,
+          subject: `Athlete Profile — ${player.name} | FUTBOLUAGENCY`,
+          message,
+          athleteName: player.name,
+          profileLink: url,
+        }),
+      });
+      const data = await res.json();
+      if(data.success){ setSent(true); setTimeout(()=>{ setSent(false); setEmails([]); setEmailInput(""); setShowEmail(false); }, 3000); }
+      else { alert("Error sending: " + data.error); }
+    } catch(e){ alert("Error: " + e.message); }
+    setSending(false);
+  };
+
   const sd=player.sportData||{};
   const sportFields=SPORT_FIELDS[player.sport]||[];
+  const inp2 = { background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"8px 12px",color:"#f9fafb",fontSize:13,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
+
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,overflowY:"auto" }}>
       <div style={{ background:"#080a10",border:"1px solid rgba(255,255,255,0.08)",borderRadius:20,width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto" }}>
@@ -194,7 +237,6 @@ const PublicProfile = ({ player, onClose }) => {
               <span style={{ color:"#f87171",fontSize:18 }}>→</span>
             </a>
           )}
-          {/* Academic */}
           <div style={{ background:"rgba(255,255,255,0.02)",borderRadius:12,padding:"16px 18px",border:"1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12 }}>Academic Profile</div>
             <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12 }}>
@@ -211,7 +253,6 @@ const PublicProfile = ({ player, onClose }) => {
               ))}
             </div>
           </div>
-          {/* Athletic */}
           <div style={{ background:"rgba(255,255,255,0.02)",borderRadius:12,padding:"16px 18px",border:"1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12 }}>Athletic Profile</div>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
@@ -220,7 +261,6 @@ const PublicProfile = ({ player, onClose }) => {
               ))}
             </div>
           </div>
-          {/* Sport stats */}
           {sportFields.length>0&&Object.keys(sd).length>0&&(
             <div style={{ background:"rgba(99,102,241,0.04)",borderRadius:12,padding:"16px 18px",border:"1px solid rgba(99,102,241,0.1)" }}>
               <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12 }}>{player.sport} Stats</div>
@@ -233,13 +273,43 @@ const PublicProfile = ({ player, onClose }) => {
               </div>
             </div>
           )}
-          {/* Share */}
+
+          {/* Share link */}
           <div style={{ background:"rgba(99,102,241,0.05)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"14px 16px" }}>
-            <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2,marginBottom:8 }}>Share Profile</div>
+            <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2,marginBottom:8 }}>Share Profile Link</div>
             <div style={{ display:"flex",gap:8 }}>
               <div style={{ flex:1,background:"rgba(0,0,0,0.3)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{url}</div>
               <button onClick={copy} style={{ display:"flex",alignItems:"center",gap:5,padding:"8px 14px",borderRadius:8,border:"none",background:copied?"#10b981":"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>{I.copy} {copied?"Copied!":"Copy"}</button>
             </div>
+          </div>
+
+          {/* Email to coaches */}
+          <div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:12,padding:"14px 16px" }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom: showEmail?12:0 }}>
+              <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2 }}>📧 Send to Coaches</div>
+              <button onClick={()=>setShowEmail(!showEmail)} style={{ padding:"5px 12px",borderRadius:7,border:"none",background:showEmail?"rgba(255,255,255,0.06)":"#10b981",color:showEmail?"#9ca3af":"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{showEmail?"Hide":"Send Email"}</button>
+            </div>
+            {showEmail&&<div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+              <div>
+                <div style={{ fontSize:10,color:"#6b7280",marginBottom:5,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>Add Coach Emails (BCC)</div>
+                <div style={{ display:"flex",gap:8 }}>
+                  <input style={{ ...inp2,flex:1 }} value={emailInput} onChange={e=>setEmailInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addEmail()} placeholder="coach@university.edu"/>
+                  <button onClick={addEmail} style={{ padding:"8px 14px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>+ Add</button>
+                </div>
+                {emails.length>0&&<div style={{ display:"flex",flexWrap:"wrap",gap:6,marginTop:8 }}>
+                  {emails.map(e=><span key={e} style={{ display:"flex",alignItems:"center",gap:5,padding:"3px 10px",background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:20,fontSize:11,color:"#818cf8" }}>{e}<button onClick={()=>removeEmail(e)} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,padding:0,lineHeight:1 }}>×</button></span>)}
+                </div>}
+                {emails.length>0&&<div style={{ fontSize:11,color:"#4b5563",marginTop:6 }}>📬 {emails.length} coach{emails.length>1?"es":""} en BCC — todos recibirán el email sin verse entre ellos</div>}
+              </div>
+              <div>
+                <div style={{ fontSize:10,color:"#6b7280",marginBottom:5,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>Message</div>
+                <textarea style={{ ...inp2,minHeight:100,resize:"vertical" }} value={message} onChange={e=>setMessage(e.target.value)}/>
+              </div>
+              <button onClick={sendEmails} disabled={sending||emails.length===0||sent} style={{ padding:"11px",borderRadius:9,border:"none",background:sent?"#10b981":emails.length===0?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#10b981,#059669)",color:emails.length===0?"#4b5563":"#fff",cursor:emails.length===0?"default":"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit",opacity:sending?0.7:1 }}>
+                {sent?`✓ Sent to ${emails.length} coach${emails.length>1?"es":""}!`:sending?"Sending...":emails.length===0?"Add emails first":`📧 Send to ${emails.length} coach${emails.length>1?"es":""} (BCC)`}
+              </button>
+              <div style={{ fontSize:11,color:"#4b5563",textAlign:"center" }}>Los entrenadores no se ven entre ellos (BCC)</div>
+            </div>}
           </div>
         </div>
       </div>

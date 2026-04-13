@@ -166,11 +166,10 @@ const EMAILJS_KEY = "HLXxR2Ikmu72FvHAp";
 const PublicProfile = ({ player, onClose }) => {
   const [copied,setCopied]=useState(false);
   const [showEmail,setShowEmail]=useState(false);
-  const [emailTo,setEmailTo]=useState("");
-  const [coachName,setCoachName]=useState("");
   const [message,setMessage]=useState(`I would like to introduce you to ${player.name}, a ${player.sport} athlete currently looking for scholarship opportunities at the ${player.position||""} position.\n\nAcademic: GPA ${player.gpa||"—"} · SAT ${player.satScore||"—"} · TOEFL ${player.toeflScore||"—"} · English ${player.englishLevel||"—"}\nHeight: ${player.height||"—"} cm · Nationality: ${player.nationality||"—"}\n\nWe believe ${player.name} would be an excellent addition to your program.`);
   const [sending,setSending]=useState(false);
   const [sent,setSent]=useState(false);
+  const [errorMsg,setErrorMsg]=useState("");
   const [emails,setEmails]=useState([]);
   const [emailInput,setEmailInput]=useState("");
   const url=`${window.location.origin}?player=${player.id}`;
@@ -185,8 +184,9 @@ const PublicProfile = ({ player, onClose }) => {
   const sendEmails = async () => {
     if(emails.length===0) return;
     setSending(true);
+    setErrorMsg("");
     try {
-      const res = await fetch("/api/send-email", {
+      const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,10 +197,18 @@ const PublicProfile = ({ player, onClose }) => {
           profileLink: url,
         }),
       });
-      const data = await res.json();
-      if(data.success){ setSent(true); setTimeout(()=>{ setSent(false); setEmails([]); setEmailInput(""); setShowEmail(false); }, 3000); }
-      else { alert("Error sending: " + data.error); }
-    } catch(e){ alert("Error: " + e.message); }
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch(e){ setErrorMsg("Server error: " + text.slice(0,100)); setSending(false); return; }
+      if(data.success){
+        setSent(true);
+        setTimeout(()=>{ setSent(false); setEmails([]); setEmailInput(""); setShowEmail(false); }, 4000);
+      } else {
+        setErrorMsg("Error: " + (data.error||"Unknown error"));
+      }
+    } catch(e){
+      setErrorMsg("Connection error: " + e.message);
+    }
     setSending(false);
   };
 
@@ -308,6 +316,7 @@ const PublicProfile = ({ player, onClose }) => {
               <button onClick={sendEmails} disabled={sending||emails.length===0||sent} style={{ padding:"11px",borderRadius:9,border:"none",background:sent?"#10b981":emails.length===0?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#10b981,#059669)",color:emails.length===0?"#4b5563":"#fff",cursor:emails.length===0?"default":"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit",opacity:sending?0.7:1 }}>
                 {sent?`✓ Sent to ${emails.length} coach${emails.length>1?"es":""}!`:sending?"Sending...":emails.length===0?"Add emails first":`📧 Send to ${emails.length} coach${emails.length>1?"es":""} (BCC)`}
               </button>
+              {errorMsg&&<div style={{ padding:"10px 14px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,fontSize:12,color:"#f87171" }}>{errorMsg}</div>}
               <div style={{ fontSize:11,color:"#4b5563",textAlign:"center" }}>Los entrenadores no se ven entre ellos (BCC)</div>
             </div>}
           </div>

@@ -92,15 +92,12 @@ const Tag = ({ label, color="#6b7280" }) => <span style={{ padding:"2px 8px",bor
 const Bar = ({ value, max, color="#6366f1", h=3 }) => <div style={{ width:"100%",background:"rgba(255,255,255,0.06)",borderRadius:99,height:h }}><div style={{ width:`${Math.min(100,max>0?(value/max)*100:0)}%`,background:color,height:"100%",borderRadius:99,transition:"width .4s" }}/></div>;
 const Card = ({ children, style={} }) => <div style={{ background:"#0f1117",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,...style }}>{children}</div>;
 
-const Stat = ({ label, value, sub, color="#6366f1", emoji }) => (
-  <div style={{ background:"#0f1117",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"16px 18px",position:"relative",overflow:"hidden" }}>
-    <div style={{ position:"absolute",top:0,right:0,width:60,height:60,background:`radial-gradient(circle at top right,${color}15,transparent)` }}/>
-    <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:8 }}>
-      <span style={{ fontSize:14 }}>{emoji}</span>
-      <span style={{ fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:1.2,color:"#4b5563" }}>{label}</span>
-    </div>
-    <div style={{ fontSize:24,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5 }}>{value}</div>
-    {sub&&<div style={{ fontSize:11,color:"#4b5563",marginTop:4 }}>{sub}</div>}
+const Stat = ({ label, value, sub, color="#6366f1" }) => (
+  <div style={{ background:"#0a0c14",border:"1px solid rgba(255,255,255,0.06)",borderRadius:14,padding:"18px 20px",position:"relative",overflow:"hidden" }}>
+    <div style={{ position:"absolute",top:-20,right:-20,width:70,height:70,background:`radial-gradient(circle,${color}18,transparent)`,borderRadius:"50%" }}/>
+    <div style={{ fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:1.2,color:"#4b5563",marginBottom:10 }}>{label}</div>
+    <div style={{ fontSize:26,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5,lineHeight:1 }}>{value}</div>
+    {sub&&<div style={{ fontSize:11,color:color,marginTop:6,fontWeight:500 }}>{sub}</div>}
   </div>
 );
 
@@ -537,9 +534,9 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
 
       {tab==="payments"&&<div style={{ display:"flex",flexDirection:"column",gap:12 }}>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10 }}>
-          <Stat label="Total acordado" value={`${totalFee.toLocaleString()}€`} color="#6366f1" emoji="💼"/>
-          <Stat label="Cobrado" value={`${paid}€`} color="#10b981" emoji="✅" sub={`${Math.round((paid/totalFee)*100)}%`}/>
-          <Stat label="Pendiente" value={`${(totalFee-paid)}€`} color={paid>=totalFee?"#10b981":"#f59e0b"} emoji="⏳"/>
+          <Stat label="Total acordado" value={`${totalFee.toLocaleString()}€`} color="#6366f1"/>
+          <Stat label="Cobrado" value={`${paid}€`} color="#10b981" sub={`${Math.round((paid/totalFee)*100)}%`}/>
+          <Stat label="Pendiente" value={`${(totalFee-paid)}€`} color={paid>=totalFee?"#10b981":"#f59e0b"}/>
         </div>
         <Card style={{ padding:"18px 20px" }}>
           <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2,marginBottom:12 }}>Estructura de pagos</div>
@@ -1171,50 +1168,60 @@ export default function App() {
       `}</style>
 
       {/* Mobile topbar */}
-      <div className="topbar" style={{ display:"none",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",background:"#080a10",borderBottom:"1px solid rgba(255,255,255,0.04)",position:"sticky",top:0,zIndex:100 }}>
+      <div className="topbar" style={{ display:"none",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",background:"#080a10",borderBottom:"1px solid rgba(255,255,255,0.05)",position:"sticky",top:0,zIndex:100 }}>
         <img src="/logo.png" alt="FUA" onError={e=>e.target.style.display="none"} style={{ height:28,objectFit:"contain" }}/>
-        <button onClick={()=>setMenuOpen(!menuOpen)} style={{ background:"rgba(255,255,255,0.05)",border:"none",color:"#9ca3af",cursor:"pointer",width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center" }}>{I.menu}</button>
+        <button onClick={()=>setMenuOpen(!menuOpen)} style={{ background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.08)",color:"#9ca3af",cursor:"pointer",width:34,height:34,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center" }}>{I.menu}</button>
       </div>
 
       <div style={{ display:"flex",height:"100vh",overflow:"hidden" }}>
         {/* Sidebar */}
-        <div className={`sidebar${menuOpen?" open":""}`} style={{ width:210,background:"#080a10",borderRight:"1px solid rgba(255,255,255,0.04)",padding:"0",display:"flex",flexDirection:"column",flexShrink:0,height:"100vh",overflow:"hidden" }}>
-          {/* Logo area */}
-          <div style={{ padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-            <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>{ e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} style={{ height:38,objectFit:"contain",maxWidth:"100%" }}/>
-            <div style={{ display:"none",alignItems:"center",gap:8 }}>
-              <div style={{ width:30,height:30,background:"linear-gradient(135deg,#c8102e,#002868)",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff" }}>FUA</div>
-              <span style={{ fontSize:12,fontWeight:700,color:"#f9fafb" }}>FUTBOLUAGENCY</span>
+        <div className={`sidebar${menuOpen?" open":""}`} style={{ width:220,background:"#060810",borderRight:"1px solid rgba(255,255,255,0.05)",padding:"0",display:"flex",flexDirection:"column",flexShrink:0,height:"100vh",overflow:"hidden" }}>
+
+          {/* Logo — centered top */}
+          <div style={{ padding:"24px 16px 20px",borderBottom:"1px solid rgba(255,255,255,0.05)",display:"flex",flexDirection:"column",alignItems:"center",gap:10 }}>
+            <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>{ e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} style={{ height:52,objectFit:"contain",width:"100%",maxWidth:140 }}/>
+            <div style={{ display:"none",flexDirection:"column",alignItems:"center",gap:4 }}>
+              <div style={{ width:40,height:40,background:"linear-gradient(135deg,#c8102e,#002868)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,color:"#fff" }}>FUA</div>
+              <span style={{ fontSize:11,fontWeight:700,color:"#6b7280",letterSpacing:1 }}>FUTBOLUAGENCY</span>
             </div>
-            {/* Agent greeting */}
-            {currentAgent&&agentObj&&<div style={{ marginTop:12,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"rgba(99,102,241,0.08)",borderRadius:8,border:"1px solid rgba(99,102,241,0.15)" }}>
-              <Avatar name={agentObj.name} size={26} photoUrl={agentObj.photo_url}/>
-              <div><div style={{ fontSize:11,fontWeight:600,color:"#f9fafb" }}>Hola, {agentObj.name.split(" ")[0]}</div><div style={{ fontSize:9,color:"#6b7280" }}>{agentObj.role}</div></div>
-            </div>}
+            {currentAgent&&agentObj&&(
+              <div style={{ display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"rgba(99,102,241,0.08)",borderRadius:8,border:"1px solid rgba(99,102,241,0.15)",width:"100%" }}>
+                <Avatar name={agentObj.name} size={24} photoUrl={agentObj.photo_url}/>
+                <div><div style={{ fontSize:11,fontWeight:600,color:"#f9fafb" }}>Hola, {agentObj.name.split(" ")[0]}</div><div style={{ fontSize:9,color:"#6b7280" }}>{agentObj.role}</div></div>
+              </div>
+            )}
           </div>
+
           {/* Nav */}
-          <div style={{ padding:"10px 10px",flex:1,overflow:"auto" }}>
+          <div style={{ padding:"12px 10px",flex:1,overflow:"auto" }}>
             {navItems.map(item=>(
-              <button key={item.id} className="nav-btn" onClick={()=>go(item.id)} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:13,fontWeight:nav===item.id?"600":"400",background:nav===item.id?"rgba(99,102,241,0.12)":"none",color:nav===item.id?"#818cf8":"#6b7280",width:"100%",textAlign:"left",fontFamily:"inherit",marginBottom:2 }}>
-                <span style={{ opacity:nav===item.id?1:0.5 }}>{item.icon}</span>{item.l}
+              <button key={item.id} className="nav-btn" onClick={()=>go(item.id)} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:13,fontWeight:nav===item.id?600:400,background:nav===item.id?"rgba(99,102,241,0.14)":"none",color:nav===item.id?"#a5b4fc":"#6b7280",width:"100%",textAlign:"left",fontFamily:"inherit",marginBottom:2,transition:"all .1s" }}>
+                <span style={{ opacity:nav===item.id?1:0.5,fontSize:14 }}>{item.icon}</span>{item.l}
+                {item.id==="leads"&&leads.length>0&&<span style={{ marginLeft:"auto",background:"rgba(99,102,241,0.25)",color:"#818cf8",fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20 }}>{leads.length}</span>}
               </button>
             ))}
-            <button onClick={loadAll} className="nav-btn" style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:400,background:"none",color:"#374151",fontFamily:"inherit",width:"100%",marginTop:4 }}><span style={{ opacity:0.5 }}>{I.refresh}</span>Actualizar</button>
+            <button onClick={loadAll} className="nav-btn" style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:11,fontWeight:400,background:"none",color:"#374151",fontFamily:"inherit",width:"100%",marginTop:6 }}><span style={{ opacity:0.4,fontSize:13 }}>{I.refresh}</span>Actualizar</button>
           </div>
-          {/* Agent avatars bottom */}
-          <div style={{ padding:"12px 14px 16px",borderTop:"1px solid rgba(255,255,255,0.04)" }}>
+
+          {/* Agents bottom */}
+          <div style={{ padding:"12px 14px 16px",borderTop:"1px solid rgba(255,255,255,0.05)" }}>
             {agentStats.slice(0,4).map(s=>(
               <div key={s.name} onClick={()=>go("team")} style={{ display:"flex",gap:8,alignItems:"center",padding:"6px 4px",cursor:"pointer",borderRadius:7 }}>
-                <Avatar name={s.name} size={24} photoUrl={s.agent?.photo_url}/>
-                <div style={{ flex:1,minWidth:0 }}><div style={{ fontSize:11,fontWeight:600,color:"#d1d5db",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{s.name.split(" ")[0]}</div></div>
-                <div style={{ fontSize:10,color:"#374151",fontWeight:500 }}>{s.total}€</div>
+                <Avatar name={s.name} size={22} photoUrl={s.agent?.photo_url}/>
+                <div style={{ flex:1,minWidth:0 }}><div style={{ fontSize:11,fontWeight:500,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{s.name.split(" ")[0]}</div></div>
+                <div style={{ fontSize:10,color:"#4b5563",fontWeight:500 }}>{s.total}€</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Main */}
-        <div className="main-pad" style={{ flex:1,overflowY:"auto",padding:"24px 28px" }}>
+        <div className="main-pad" style={{ flex:1,overflowY:"auto",padding:"0" }}>
+          {/* Top header bar with logo centered */}
+          <div style={{ background:"#060810",borderBottom:"1px solid rgba(255,255,255,0.05)",padding:"0 32px",height:56,display:"flex",alignItems:"center",justifyContent:"center",position:"sticky",top:0,zIndex:50 }}>
+            <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:34,objectFit:"contain" }}/>
+          </div>
+          <div style={{ padding:"24px 28px" }}>
 
           {/* DASHBOARD */}
           {nav==="dashboard"&&(
@@ -1224,10 +1231,10 @@ export default function App() {
                 <p style={{ color:"#374151",fontSize:13,marginTop:3 }}>Resumen general · FUTBOLUAGENCY</p>
               </div>
               <div className="g4" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18 }}>
-                <Stat label="Atletas" value={players.length} sub={`${players.filter(p=>p.status==="Becado").length} becados`} color="#6366f1" emoji="👥"/>
-                <Stat label="Revenue" value={totalFees>0?`${(totalFees/1000).toFixed(1)}k€`:"—"} color="#8b5cf6" emoji="💼"/>
-                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#10b981" emoji="✅" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"—"}/>
-                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}€`} color="#f59e0b" emoji="⏳" sub={`${players.filter(p=>!p.payment2?.paid).length} abiertos`}/>
+                <Stat label="Atletas" value={players.length} sub={`${players.filter(p=>p.status==="Becado").length} becados`} color="#6366f1"/>
+                <Stat label="Revenue" value={totalFees>0?`${(totalFees/1000).toFixed(1)}k€`:"—"} color="#8b5cf6"/>
+                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#10b981" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"—"}/>
+                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}€`} color="#f59e0b" sub={`${players.filter(p=>!p.payment2?.paid).length} abiertos`}/>
               </div>
               <div className="g2" style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
                 <Card style={{ padding:"18px 20px" }}>
@@ -1295,25 +1302,25 @@ export default function App() {
                   const paid=(p.payment1?.paid?(p.payment1Amount||900):0)+(p.payment2?.paid?(p.payment2Amount||1800):0);
                   const total=p.totalFee||2700; const pct=(paid/total)*100;
                   return (
-                    <div key={p.id} className="prow" onClick={()=>setSelected(p)} style={{ display:"flex",flexDirection:"column",background:"#0d0f16",border:"1px solid rgba(255,255,255,0.05)",borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"all .1s",gap:10 }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:12 }}>
-                        <Avatar name={p.name} size={42} photoUrl={p.photoUrl}/>
-                        <div style={{ flex:1,minWidth:0 }}>
-                          <div style={{ fontSize:14,fontWeight:600,color:"#f9fafb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.name}</div>
-                          <div style={{ fontSize:11,color:"#4b5563",marginTop:2 }}>{p.sport}{p.nationality?` · ${p.nationality}`:""}{p.position&&p.position!=="N/A"?` · ${p.position}`:""}</div>
-                        </div>
-                        <Badge s={p.status}/>
+                    <div key={p.id} className="prow" onClick={()=>setSelected(p)} style={{ display:"flex",alignItems:"center",gap:16,background:"#0a0c14",border:"1px solid rgba(255,255,255,0.05)",borderRadius:12,padding:"14px 20px",cursor:"pointer",transition:"all .12s" }}>
+                      {/* Photo only if exists, otherwise sport icon */}
+                      {p.photoUrl
+                        ? <Avatar name={p.name} size={40} photoUrl={p.photoUrl}/>
+                        : <div style={{ width:40,height:40,borderRadius:10,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{{ Soccer:"⚽",Tennis:"🎾",Swimming:"🏊",Baseball:"⚾",Basketball:"🏀","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[p.sport]||"🏅"}</div>
+                      }
+                      <div style={{ flex:2,minWidth:0 }}>
+                        <div style={{ fontSize:14,fontWeight:600,color:"#f9fafb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3 }}>{p.name}</div>
+                        <div style={{ fontSize:11,color:"#4b5563" }}>{p.sport}{p.nationality?` · ${p.nationality}`:""}{p.position&&p.position!=="N/A"?` · ${p.position}`:""}</div>
                       </div>
-                      <div style={{ display:"flex",alignItems:"center",gap:14 }}>
-                        <div style={{ display:"flex",gap:14 }}>
-                          <div><div style={{ fontSize:9,color:"#374151",marginBottom:2,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>Beca</div><div style={{ fontSize:13,fontWeight:700,color:"#6366f1" }}>{p.scholarshipPct}%</div></div>
-                          <div><div style={{ fontSize:9,color:"#374151",marginBottom:2,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>GPA</div><div style={{ fontSize:13,fontWeight:700,color:p.gpa>=3.5?"#10b981":p.gpa>=3?"#f59e0b":"#ef4444" }}>{p.gpa||"—"}</div></div>
-                          <div><div style={{ fontSize:9,color:"#374151",marginBottom:2,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>Agente</div><div style={{ fontSize:12,fontWeight:600,color:"#818cf8" }}>{p.agent?.split(" ")[0]||"—"}</div></div>
-                        </div>
-                        <div style={{ flex:1 }}>
-                          <div style={{ display:"flex",justifyContent:"space-between",fontSize:10,color:"#374151",marginBottom:3 }}><span>Cobros</span><span style={{ color:pct>=100?"#10b981":pct>0?"#f59e0b":"#ef4444",fontWeight:600 }}>{paid}€ / {total}€</span></div>
-                          <Bar value={paid} max={total} color={pct>=100?"#10b981":pct>0?"#f59e0b":"#6366f1"}/>
-                        </div>
+                      <Badge s={p.status}/>
+                      <div style={{ display:"flex",gap:16,flexShrink:0 }}>
+                        <div style={{ textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2 }}>Beca</div><div style={{ fontSize:13,fontWeight:700,color:"#6366f1" }}>{p.scholarshipPct}%</div></div>
+                        <div style={{ textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2 }}>GPA</div><div style={{ fontSize:13,fontWeight:700,color:p.gpa>=3.5?"#10b981":p.gpa>=3?"#f59e0b":"#ef4444" }}>{p.gpa||"—"}</div></div>
+                        <div style={{ textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2 }}>Agente</div><div style={{ fontSize:12,fontWeight:600,color:"#a5b4fc" }}>{p.agent?.split(" ")[0]||"—"}</div></div>
+                      </div>
+                      <div style={{ minWidth:120 }}>
+                        <div style={{ display:"flex",justifyContent:"space-between",fontSize:10,color:"#4b5563",marginBottom:4 }}><span>Cobros</span><span style={{ color:pct>=100?"#10b981":pct>0?"#f59e0b":"#ef4444",fontWeight:600 }}>{paid}€</span></div>
+                        <Bar value={paid} max={total} color={pct>=100?"#10b981":pct>0?"#f59e0b":"#6366f1"} h={3}/>
                       </div>
                     </div>
                   );
@@ -1388,9 +1395,9 @@ export default function App() {
             <div>
               <div style={{ marginBottom:20 }}><h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Universidades</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>{allOffers.length} ofertas totales</p></div>
               <div className="g4" style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18 }}>
-                <Stat label="Total ofertas" value={allOffers.length} color="#6366f1" emoji="🏛️"/>
-                <Stat label="Confirmadas" value={allOffers.filter(o=>o.status==="Elegida ✓").length} color="#10b981" emoji="✅"/>
-                <Stat label="Negociando" value={allOffers.filter(o=>["Oferta formal","Pre-aceptada","Interesada"].includes(o.status)).length} color="#f59e0b" emoji="🤝"/>
+                <Stat label="Total ofertas" value={allOffers.length} color="#6366f1"/>
+                <Stat label="Confirmadas" value={allOffers.filter(o=>o.status==="Elegida ✓").length} color="#10b981"/>
+                <Stat label="Negociando" value={allOffers.filter(o=>["Oferta formal","Pre-aceptada","Interesada"].includes(o.status)).length} color="#f59e0b"/>
               </div>
               {players.filter(p=>p.offers?.length>0).length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}>🏛️</div><div style={{ fontWeight:600,color:"#6b7280" }}>Sin ofertas</div></div>}
               <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
@@ -1424,10 +1431,10 @@ export default function App() {
             <div>
               <div style={{ marginBottom:20 }}><h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Pagos & Cobros</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>Honorarios personalizados por atleta</p></div>
               <div className="g4" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18 }}>
-                <Stat label="Revenue" value={`${totalFees.toLocaleString()}€`} color="#6366f1" emoji="💼"/>
-                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#10b981" emoji="✅" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"—"}/>
-                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}€`} color="#f59e0b" emoji="⏳"/>
-                <Stat label="Completos" value={players.filter(p=>p.payment1?.paid&&p.payment2?.paid).length} color="#22c55e" emoji="🏆" sub={`de ${players.length}`}/>
+                <Stat label="Revenue" value={`${totalFees.toLocaleString()}€`} color="#6366f1"/>
+                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#10b981" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"—"}/>
+                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}€`} color="#f59e0b"/>
+                <Stat label="Completos" value={players.filter(p=>p.payment1?.paid&&p.payment2?.paid).length} color="#22c55e" sub={`de ${players.length}`}/>
               </div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:16 }}>
                 {agentStats.map(s=>(
@@ -1518,6 +1525,7 @@ export default function App() {
               </div>
             </div>
           )}
+          </div>{/* end padding div */}
         </div>
       </div>
 

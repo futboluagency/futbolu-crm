@@ -564,6 +564,117 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
   );
 };
 
+const LeadDetail = ({ lead, onClose, onConvert, onDelete }) => {
+  const sd = lead.sport_data ? (typeof lead.sport_data==="string"?JSON.parse(lead.sport_data):lead.sport_data) : {};
+  const sportEmoji = { Soccer:"⚽",Tennis:"🎾",Swimming:"🏊",Baseball:"⚾",Basketball:"🏀","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" };
+  const Section = ({ title, color, children }) => (
+    <div style={{ background:"rgba(255,255,255,0.02)",borderRadius:12,padding:"16px 18px",border:"1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ fontSize:10,fontWeight:700,color:color||"#4b5563",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12 }}>{title}</div>
+      {children}
+    </div>
+  );
+  const Row = ({ label, value, color }) => value ? (
+    <div style={{ background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"9px 12px" }}>
+      <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>{label}</div>
+      <div style={{ fontSize:13,color:color||"#e5e7eb",fontWeight:600 }}>{value}</div>
+    </div>
+  ) : null;
+
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,overflowY:"auto" }}>
+      <div style={{ background:"#080a10",border:"1px solid rgba(255,255,255,0.08)",borderRadius:20,width:"100%",maxWidth:600,maxHeight:"92vh",overflowY:"auto" }}>
+        {/* Header */}
+        <div style={{ background:"linear-gradient(135deg,#0d1117,#0f1320)",padding:"22px 24px 18px",borderRadius:"20px 20px 0 0",borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
+            <div>
+              <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
+                <span style={{ fontSize:24 }}>{sportEmoji[lead.sport]||"🎯"}</span>
+                <h2 style={{ margin:0,fontSize:22,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5 }}>{lead.name}</h2>
+              </div>
+              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                {lead.sport&&<Tag label={lead.sport} color="#6366f1"/>}
+                {lead.position&&<Tag label={lead.position} color="#8b5cf6"/>}
+                {lead.nationality&&<Tag label={lead.nationality} color="#3b82f6"/>}
+                {lead.age&&<Tag label={`${lead.age} yrs`} color="#6b7280"/>}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.06)",border:"none",color:"#9ca3af",cursor:"pointer",width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{I.x}</button>
+          </div>
+          {/* Budget highlight */}
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:14 }}>
+            <div style={{ background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:12,padding:"14px 16px",textAlign:"center" }}>
+              <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>💰 Annual Budget</div>
+              <div style={{ fontSize:22,fontWeight:900,color:"#10b981" }}>{lead.budget?`$${Number(lead.budget).toLocaleString()}`:"Not specified"}</div>
+            </div>
+            <div style={{ background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.18)",borderRadius:12,padding:"14px 16px",textAlign:"center" }}>
+              <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>🎓 Scholarship Sought</div>
+              <div style={{ fontSize:22,fontWeight:900,color:"#818cf8" }}>{lead.scholarship_pct?`${lead.scholarship_pct}%`:"—"}</div>
+            </div>
+          </div>
+          {/* FAFSA */}
+          <div style={{ marginTop:10,padding:"8px 14px",background:lead.fafsa?"rgba(16,185,129,0.06)":"rgba(255,255,255,0.03)",border:`1px solid ${lead.fafsa?"rgba(16,185,129,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:9,fontSize:13,color:lead.fafsa?"#10b981":"#6b7280",fontWeight:600 }}>
+            {lead.fafsa?"✓ FAFSA Eligible":"✗ Not FAFSA Eligible"}
+          </div>
+        </div>
+
+        <div style={{ padding:"18px 24px 24px",display:"flex",flexDirection:"column",gap:12 }}>
+          {/* Contact */}
+          <Section title="Contact Information" color="#6366f1">
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+              <Row label="Email" value={lead.email}/>
+              <Row label="Phone / WhatsApp" value={lead.phone}/>
+              <Row label="Instagram" value={lead.instagram}/>
+              <Row label="Submitted" value={new Date(lead.created_at).toLocaleDateString("es-ES")}/>
+            </div>
+          </Section>
+
+          {/* Academic */}
+          <Section title="Academic Profile" color="#8b5cf6">
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:10 }}>
+              {[["GPA",lead.gpa,lead.gpa>=3.5?"#10b981":lead.gpa>=3?"#f59e0b":"#9ca3af"],["SAT",lead.sat_score,"#6366f1"],["TOEFL",lead.toefl_score,"#8b5cf6"],["English",lead.english_level,"#3b82f6"]].map(([l,v,c])=>(
+                <div key={l} style={{ background:"rgba(255,255,255,0.03)",border:`1px solid ${c}15`,borderRadius:10,padding:"12px 8px",textAlign:"center" }}>
+                  <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:5,fontWeight:600 }}>{l}</div>
+                  <div style={{ fontSize:18,fontWeight:800,color:c }}>{v||"—"}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+              <Row label="High School" value={lead.high_school}/>
+              <Row label="Graduation Year" value={lead.graduation_year}/>
+              <Row label="Intended Major" value={lead.major}/>
+              <Row label="English Level" value={lead.english_level}/>
+            </div>
+          </Section>
+
+          {/* Athletic */}
+          <Section title="Athletic Profile" color="#10b981">
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+              <Row label="Sport" value={lead.sport}/>
+              <Row label="Position" value={lead.position}/>
+              <Row label="Height" value={lead.height?`${lead.height} cm`:null}/>
+              <Row label="Weight" value={lead.weight?`${lead.weight} kg`:null}/>
+              {lead.video_url&&<div style={{ gridColumn:"1/-1" }}>
+                <a href={lead.video_url} target="_blank" rel="noreferrer" style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.18)",borderRadius:9,textDecoration:"none",color:"#f87171",fontSize:13,fontWeight:600 }}>▶ Watch Highlight Video</a>
+              </div>}
+            </div>
+          </Section>
+
+          {/* Notes */}
+          {lead.notes&&<Section title="Additional Notes" color="#f59e0b">
+            <div style={{ fontSize:13,color:"#d1d5db",lineHeight:1.7 }}>{lead.notes}</div>
+          </Section>}
+
+          {/* Actions */}
+          <div style={{ display:"flex",gap:10,marginTop:4 }}>
+            <button onClick={()=>{ if(window.confirm(`¿Convertir a ${lead.name} en atleta?`)){ onConvert(lead); onClose(); }}} style={{ flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit" }}>✓ Convertir en atleta</button>
+            <button onClick={()=>{ if(window.confirm(`¿Eliminar lead ${lead.name}?`)){ onDelete(lead.id); onClose(); }}} style={{ flex:1,padding:"12px",borderRadius:10,border:"1px solid rgba(239,68,68,0.2)",background:"rgba(239,68,68,0.06)",color:"#ef4444",cursor:"pointer",fontSize:13,fontFamily:"inherit" }}>Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AgentLinkRow = ({ agent, link, IcCopy }) => {
   const [copied,setCopied] = useState(false);
   return (
@@ -658,8 +769,100 @@ const LeadForm = () => {
           <div style={{ background:"#0d0f16",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Athletic Information</div>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-              <div><label style={lbl}>Sport</label><select style={{ ...inp,cursor:"pointer" }} value={form.sport} onChange={e=>set("sport",e.target.value)}>{SPORTS_LIST.map(s=><option key={s}>{s}</option>)}</select></div>
-              <div><label style={lbl}>Position</label><input style={inp} value={form.position} onChange={e=>set("position",e.target.value)} placeholder="Striker, Goalkeeper..."/></div>
+              {/* Sport selector */}
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={lbl}>Sport</label>
+                <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>
+                  {SPORTS_LIST.map(s=>(
+                    <div key={s} onClick={()=>{ set("sport",s); set("position",""); }} style={{ padding:"10px 8px",borderRadius:9,border:`2px solid ${form.sport===s?"#6366f1":"rgba(255,255,255,0.07)"}`,background:form.sport===s?"rgba(99,102,241,0.12)":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center" }}>
+                      <div style={{ fontSize:16,marginBottom:4 }}>{{ Soccer:"⚽",Tennis:"🎾",Swimming:"🏊",Baseball:"⚾",Basketball:"🏀","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[s]||"🎯"}</div>
+                      <div style={{ fontSize:11,fontWeight:600,color:form.sport===s?"#818cf8":"#9ca3af" }}>{s}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Soccer */}
+              {form.sport==="Soccer"&&<>
+                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select position...</option>{["Goalkeeper","Center Back","Right Back","Left Back","Defensive Midfielder","Central Midfielder","Attacking Midfielder","Right Winger","Left Winger","Striker","Forward"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Dominant Foot</label><select style={{ ...inp,cursor:"pointer" }} value={form.foot||""} onChange={e=>set("foot",e.target.value)}><option value="">Select...</option>{["Right","Left","Both"].map(f=><option key={f}>{f}</option>)}</select></div>
+                <div><label style={lbl}>Goals this season</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="0"/></div>
+                <div><label style={lbl}>Assists this season</label><input style={inp} type="number" value={form.sport_assists||""} onChange={e=>set("sport_assists",e.target.value)} placeholder="0"/></div>
+                <div><label style={lbl}>Games played</label><input style={inp} type="number" value={form.sport_games||""} onChange={e=>set("sport_games",e.target.value)} placeholder="0"/></div>
+                <div><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
+              </>}
+
+              {/* Tennis */}
+              {form.sport==="Tennis"&&<>
+                <div><label style={lbl}>Playing style</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Singles","Doubles","Singles & Doubles"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Dominant Hand</label><select style={{ ...inp,cursor:"pointer" }} value={form.foot||""} onChange={e=>set("foot",e.target.value)}><option value="">Select...</option>{["Right","Left"].map(f=><option key={f}>{f}</option>)}</select></div>
+                <div><label style={lbl}>ITF Junior Ranking</label><input style={inp} value={form.sport_ranking||""} onChange={e=>set("sport_ranking",e.target.value)} placeholder="e.g. 250"/></div>
+                <div><label style={lbl}>National Ranking</label><input style={inp} value={form.sport_national_ranking||""} onChange={e=>set("sport_national_ranking",e.target.value)} placeholder="e.g. 15"/></div>
+                <div><label style={lbl}>Best tournament result</label><input style={inp} value={form.sport_best_result||""} onChange={e=>set("sport_best_result",e.target.value)} placeholder="e.g. Quarterfinal ITF G1"/></div>
+                <div><label style={lbl}>Current club</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
+              </>}
+
+              {/* Swimming */}
+              {form.sport==="Swimming"&&<>
+                <div><label style={lbl}>Main stroke</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Freestyle","Backstroke","Breaststroke","Butterfly","Individual Medley","Relay"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Best 50m free</label><input style={inp} value={form.sport_time_50free||""} onChange={e=>set("sport_time_50free",e.target.value)} placeholder="e.g. 24.50"/></div>
+                <div><label style={lbl}>Best 100m free</label><input style={inp} value={form.sport_time_100free||""} onChange={e=>set("sport_time_100free",e.target.value)} placeholder="e.g. 53.20"/></div>
+                <div><label style={lbl}>Best 100m back</label><input style={inp} value={form.sport_time_100back||""} onChange={e=>set("sport_time_100back",e.target.value)} placeholder="e.g. 57.00"/></div>
+                <div><label style={lbl}>Best 100m breast</label><input style={inp} value={form.sport_time_100breast||""} onChange={e=>set("sport_time_100breast",e.target.value)} placeholder="e.g. 1:05.00"/></div>
+                <div><label style={lbl}>Current club</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
+                <div><label style={lbl}>National ranking</label><input style={inp} value={form.sport_national_ranking||""} onChange={e=>set("sport_national_ranking",e.target.value)} placeholder="e.g. 8"/></div>
+              </>}
+
+              {/* Baseball */}
+              {form.sport==="Baseball"&&<>
+                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Pitcher","Catcher","First Base","Second Base","Third Base","Shortstop","Left Field","Center Field","Right Field","DH"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Pitch velocity (mph)</label><input style={inp} type="number" value={form.sport_velocity||""} onChange={e=>set("sport_velocity",e.target.value)} placeholder="85"/></div>
+                <div><label style={lbl}>Batting average</label><input style={inp} value={form.sport_batting_avg||""} onChange={e=>set("sport_batting_avg",e.target.value)} placeholder=".300"/></div>
+                <div><label style={lbl}>ERA (pitchers)</label><input style={inp} value={form.sport_era||""} onChange={e=>set("sport_era",e.target.value)} placeholder="2.50"/></div>
+                <div><label style={lbl}>Home runs</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="5"/></div>
+                <div><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
+              </>}
+
+              {/* Basketball */}
+              {form.sport==="Basketball"&&<>
+                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Wingspan (cm)</label><input style={inp} type="number" value={form.sport_wingspan||""} onChange={e=>set("sport_wingspan",e.target.value)} placeholder="200"/></div>
+                <div><label style={lbl}>Points per game</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="15"/></div>
+                <div><label style={lbl}>Rebounds per game</label><input style={inp} type="number" value={form.sport_rebounds||""} onChange={e=>set("sport_rebounds",e.target.value)} placeholder="8"/></div>
+                <div><label style={lbl}>Assists per game</label><input style={inp} type="number" value={form.sport_assists||""} onChange={e=>set("sport_assists",e.target.value)} placeholder="5"/></div>
+                <div><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
+              </>}
+
+              {/* Track & Field */}
+              {form.sport==="Track & Field"&&<>
+                <div><label style={lbl}>Event / Specialty</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select event...</option>{["100m","200m","400m","800m","1500m","5000m","10000m","110m Hurdles","400m Hurdles","High Jump","Long Jump","Triple Jump","Pole Vault","Shot Put","Discus","Hammer","Javelin","Decathlon","Heptathlon"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Personal best (mark)</label><input style={inp} value={form.sport_personal_best||""} onChange={e=>set("sport_personal_best",e.target.value)} placeholder="e.g. 10.85s / 7.20m"/></div>
+                <div><label style={lbl}>National ranking</label><input style={inp} value={form.sport_national_ranking||""} onChange={e=>set("sport_national_ranking",e.target.value)} placeholder="e.g. 3rd U20"/></div>
+                <div><label style={lbl}>World junior ranking</label><input style={inp} value={form.sport_world_ranking||""} onChange={e=>set("sport_world_ranking",e.target.value)} placeholder="e.g. Top 50"/></div>
+                <div><label style={lbl}>Club / Team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
+                <div><label style={lbl}>Current coach</label><input style={inp} value={form.sport_coach||""} onChange={e=>set("sport_coach",e.target.value)} placeholder="Coach name"/></div>
+              </>}
+
+              {/* Golf */}
+              {form.sport==="Golf"&&<>
+                <div><label style={lbl}>Category</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Amateur","Professional"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Handicap</label><input style={inp} value={form.sport_handicap||""} onChange={e=>set("sport_handicap",e.target.value)} placeholder="e.g. +2 / 5"/></div>
+                <div><label style={lbl}>Best 18-hole score</label><input style={inp} value={form.sport_best_score||""} onChange={e=>set("sport_best_score",e.target.value)} placeholder="e.g. 68"/></div>
+                <div><label style={lbl}>Amateur ranking</label><input style={inp} value={form.sport_ranking||""} onChange={e=>set("sport_ranking",e.target.value)} placeholder="e.g. Top 100 WAGR"/></div>
+                <div><label style={lbl}>Tournaments won</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="3"/></div>
+                <div><label style={lbl}>Current club</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
+              </>}
+
+              {/* Volleyball */}
+              {form.sport==="Volleyball"&&<>
+                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Libero","Setter","Opposite","Middle Blocker","Outside Hitter","Right Side"].map(p=><option key={p}>{p}</option>)}</select></div>
+                <div><label style={lbl}>Approach reach (cm)</label><input style={inp} type="number" value={form.sport_reach||""} onChange={e=>set("sport_reach",e.target.value)} placeholder="310"/></div>
+                <div><label style={lbl}>Points per set</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="4"/></div>
+                <div><label style={lbl}>Aces per set</label><input style={inp} type="number" value={form.sport_assists||""} onChange={e=>set("sport_assists",e.target.value)} placeholder="1"/></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
+              </>}
+
+              {/* Common for all */}
               <div><label style={lbl}>Height (cm)</label><input style={inp} type="number" value={form.height} onChange={e=>set("height",e.target.value)} placeholder="180"/></div>
               <div><label style={lbl}>Weight (kg)</label><input style={inp} type="number" value={form.weight} onChange={e=>set("weight",e.target.value)} placeholder="75"/></div>
               <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Highlight Video Link</label><input style={inp} type="url" value={form.video_url} onChange={e=>set("video_url",e.target.value)} placeholder="https://youtube.com/..."/></div>
@@ -871,6 +1074,7 @@ export default function App() {
   const [fAgent,setFAgent]=useState("Todos");
   const [addModal,setAddModal]=useState(false);
   const [agentModal,setAgentModal]=useState(null);
+  const [selectedLead,setSelectedLead]=useState(null);
   const [menuOpen,setMenuOpen]=useState(false);
   const [currentAgent,setCurrentAgent]=useState(null); // agent from URL
 
@@ -1142,38 +1346,38 @@ export default function App() {
               </div>}
               <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
                 {leads.map(lead=>(
-                  <Card key={lead.id} style={{ padding:"16px 18px" }}>
-                    <div style={{ display:"flex",alignItems:"flex-start",gap:14,flexWrap:"wrap" }}>
-                      <div style={{ flex:1,minWidth:200 }}>
-                        <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap" }}>
-                          <div style={{ fontSize:16,fontWeight:700,color:"#f9fafb" }}>{lead.name}</div>
-                          <Tag label={lead.sport||"—"} color="#6366f1"/>
-                          <Tag label={lead.nationality||"—"} color="#3b82f6"/>
-                          <span style={{ fontSize:10,color:"#374151" }}>{new Date(lead.created_at).toLocaleDateString("es-ES")}</span>
-                        </div>
-                        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8 }}>
-                          {[["GPA",lead.gpa,lead.gpa>=3.5?"#10b981":lead.gpa>=3?"#f59e0b":"#9ca3af"],["SAT",lead.sat_score,"#6366f1"],["TOEFL",lead.toefl_score,"#8b5cf6"],["Inglés",lead.english_level,"#3b82f6"]].map(([l,v,c])=>v?(
-                            <div key={l} style={{ background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 10px" }}>
-                              <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>{l}</div>
-                              <div style={{ fontSize:14,fontWeight:700,color:c }}>{v}</div>
-                            </div>
-                          ):null)}
-                          {lead.scholarship_pct>0&&<div style={{ background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 10px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>Beca buscada</div><div style={{ fontSize:14,fontWeight:700,color:"#6366f1" }}>{lead.scholarship_pct}%</div></div>}
-                          {lead.budget&&<div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.1)",borderRadius:8,padding:"8px 10px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>Budget</div><div style={{ fontSize:14,fontWeight:700,color:"#10b981" }}>${Number(lead.budget).toLocaleString()}</div></div>}
-                        </div>
-                        {lead.notes&&<div style={{ marginTop:8,fontSize:12,color:"#6b7280",fontStyle:"italic" }}>{lead.notes}</div>}
-                        <div style={{ marginTop:8,display:"flex",gap:10,fontSize:12,color:"#4b5563",flexWrap:"wrap" }}>
-                          {lead.email&&<span>📧 {lead.email}</span>}
-                          {lead.phone&&<span>📱 {lead.phone}</span>}
-                          {lead.video_url&&<a href={lead.video_url} target="_blank" rel="noreferrer" style={{ color:"#f87171",textDecoration:"none" }}>▶ Video</a>}
-                        </div>
+                  <div key={lead.id} onClick={()=>setSelectedLead(lead)} style={{ display:"flex",alignItems:"center",gap:14,background:"#0d0f16",border:"1px solid rgba(255,255,255,0.06)",borderRadius:14,padding:"14px 18px",cursor:"pointer",transition:"all .1s" }} className="prow">
+                    {/* Sport icon */}
+                    <div style={{ width:44,height:44,borderRadius:12,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0 }}>
+                      {{ Soccer:"⚽",Tennis:"🎾",Swimming:"🏊",Baseball:"⚾",Basketball:"🏀","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[lead.sport]||"🎯"}
+                    </div>
+                    {/* Name + info */}
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:5,flexWrap:"wrap" }}>
+                        <span style={{ fontSize:15,fontWeight:700,color:"#f9fafb" }}>{lead.name}</span>
+                        {lead.sport&&<Tag label={lead.sport} color="#6366f1"/>}
+                        {lead.position&&<Tag label={lead.position} color="#8b5cf6"/>}
+                        {lead.nationality&&<Tag label={lead.nationality} color="#3b82f6"/>}
                       </div>
-                      <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                        <button onClick={()=>{ if(window.confirm(`¿Convertir a ${lead.name} en atleta?`)) convertLead(lead); }} style={{ padding:"8px 14px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>✓ Convertir en atleta</button>
-                        <button onClick={()=>{ if(window.confirm(`¿Eliminar lead ${lead.name}?`)) deleteLead(lead.id); }} style={{ padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.2)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>Eliminar</button>
+                      <div style={{ display:"flex",gap:12,flexWrap:"wrap",fontSize:11,color:"#4b5563" }}>
+                        {lead.email&&<span>📧 {lead.email}</span>}
+                        {lead.phone&&<span>📱 {lead.phone}</span>}
+                        <span>📅 {new Date(lead.created_at).toLocaleDateString("es-ES")}</span>
                       </div>
                     </div>
-                  </Card>
+                    {/* Academic quick stats */}
+                    <div style={{ display:"flex",gap:8,flexShrink:0 }}>
+                      {lead.gpa&&<div style={{ textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,marginBottom:2 }}>GPA</div><div style={{ fontSize:13,fontWeight:800,color:lead.gpa>=3.5?"#10b981":lead.gpa>=3?"#f59e0b":"#9ca3af" }}>{lead.gpa}</div></div>}
+                      {lead.sat_score&&<div style={{ textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,marginBottom:2 }}>SAT</div><div style={{ fontSize:13,fontWeight:800,color:"#6366f1" }}>{lead.sat_score}</div></div>}
+                    </div>
+                    {/* Budget — highlighted */}
+                    <div style={{ background:lead.budget?"rgba(16,185,129,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${lead.budget?"rgba(16,185,129,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:110,flexShrink:0 }}>
+                      <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>💰 Budget/año</div>
+                      <div style={{ fontSize:15,fontWeight:900,color:lead.budget?"#10b981":"#4b5563" }}>{lead.budget?`$${Number(lead.budget).toLocaleString()}`:"No indicado"}</div>
+                      {lead.scholarship_pct>0&&<div style={{ fontSize:10,color:"#818cf8",marginTop:3 }}>Busca {lead.scholarship_pct}% beca</div>}
+                    </div>
+                    <div style={{ color:"#374151",fontSize:16 }}>›</div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1319,6 +1523,7 @@ export default function App() {
 
       {addModal&&<PlayerModal onClose={()=>setAddModal(false)} onSave={async(p)=>{ await addPlayer(p); setAddModal(false); }} agentList={agentNames}/>}
       {agentModal&&<AgentModal initial={agentModal==="new"?null:agentModal} onClose={()=>setAgentModal(null)} onSave={saveAgent}/>}
+      {selectedLead&&<LeadDetail lead={selectedLead} onClose={()=>setSelectedLead(null)} onConvert={convertLead} onDelete={deleteLead}/>}
     </div>
   );
 }

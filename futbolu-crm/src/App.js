@@ -159,63 +159,12 @@ const playerToDb = (p) => ({
 });
 
 // ─── PUBLIC PROFILE (ENGLISH) ─────────────────────────────────────────────────
-const EMAILJS_SERVICE = "service_lyan7nr";
-const EMAILJS_TEMPLATE = "template_ha06ovd";
-const EMAILJS_KEY = "HLXxR2Ikmu72FvHAp";
-
 const PublicProfile = ({ player, onClose }) => {
   const [copied,setCopied]=useState(false);
-  const [showEmail,setShowEmail]=useState(false);
-  const [message,setMessage]=useState(`I would like to introduce you to ${player.name}, a ${player.sport} athlete currently looking for scholarship opportunities at the ${player.position||""} position.\n\nAcademic: GPA ${player.gpa||"—"} · SAT ${player.satScore||"—"} · TOEFL ${player.toeflScore||"—"} · English ${player.englishLevel||"—"}\nHeight: ${player.height||"—"} cm · Nationality: ${player.nationality||"—"}\n\nWe believe ${player.name} would be an excellent addition to your program.`);
-  const [sending,setSending]=useState(false);
-  const [sent,setSent]=useState(false);
-  const [errorMsg,setErrorMsg]=useState("");
-  const [emails,setEmails]=useState([]);
-  const [emailInput,setEmailInput]=useState("");
   const url=`${window.location.origin}?player=${player.id}`;
   const copy=()=>{ navigator.clipboard.writeText(url); setCopied(true); setTimeout(()=>setCopied(false),2000); };
-
-  const addEmail = () => {
-    const e = emailInput.trim();
-    if(e && e.includes("@") && !emails.includes(e)){ setEmails(prev=>[...prev,e]); setEmailInput(""); }
-  };
-  const removeEmail = (e) => setEmails(prev=>prev.filter(x=>x!==e));
-
-  const sendEmails = async () => {
-    if(emails.length===0) return;
-    setSending(true);
-    setErrorMsg("");
-    try {
-      const response = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          emails,
-          subject: `Athlete Profile — ${player.name} | FUTBOLUAGENCY`,
-          message,
-          athleteName: player.name,
-          profileLink: url,
-        }),
-      });
-      const text = await response.text();
-      let data;
-      try { data = JSON.parse(text); } catch(e){ setErrorMsg("Server error: " + text.slice(0,100)); setSending(false); return; }
-      if(data.success){
-        setSent(true);
-        setTimeout(()=>{ setSent(false); setEmails([]); setEmailInput(""); setShowEmail(false); }, 4000);
-      } else {
-        setErrorMsg("Error: " + (data.error||"Unknown error"));
-      }
-    } catch(e){
-      setErrorMsg("Connection error: " + e.message);
-    }
-    setSending(false);
-  };
-
   const sd=player.sportData||{};
   const sportFields=SPORT_FIELDS[player.sport]||[];
-  const inp2 = { background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"8px 12px",color:"#f9fafb",fontSize:13,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
-
   return (
     <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,overflowY:"auto" }}>
       <div style={{ background:"#080a10",border:"1px solid rgba(255,255,255,0.08)",borderRadius:20,width:"100%",maxWidth:540,maxHeight:"92vh",overflowY:"auto" }}>
@@ -281,44 +230,12 @@ const PublicProfile = ({ player, onClose }) => {
               </div>
             </div>
           )}
-
-          {/* Share link */}
           <div style={{ background:"rgba(99,102,241,0.05)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"14px 16px" }}>
             <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2,marginBottom:8 }}>Share Profile Link</div>
             <div style={{ display:"flex",gap:8 }}>
               <div style={{ flex:1,background:"rgba(0,0,0,0.3)",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{url}</div>
               <button onClick={copy} style={{ display:"flex",alignItems:"center",gap:5,padding:"8px 14px",borderRadius:8,border:"none",background:copied?"#10b981":"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>{I.copy} {copied?"Copied!":"Copy"}</button>
             </div>
-          </div>
-
-          {/* Email to coaches */}
-          <div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.15)",borderRadius:12,padding:"14px 16px" }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom: showEmail?12:0 }}>
-              <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2 }}>📧 Send to Coaches</div>
-              <button onClick={()=>setShowEmail(!showEmail)} style={{ padding:"5px 12px",borderRadius:7,border:"none",background:showEmail?"rgba(255,255,255,0.06)":"#10b981",color:showEmail?"#9ca3af":"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{showEmail?"Hide":"Send Email"}</button>
-            </div>
-            {showEmail&&<div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-              <div>
-                <div style={{ fontSize:10,color:"#6b7280",marginBottom:5,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>Add Coach Emails (BCC)</div>
-                <div style={{ display:"flex",gap:8 }}>
-                  <input style={{ ...inp2,flex:1 }} value={emailInput} onChange={e=>setEmailInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addEmail()} placeholder="coach@university.edu"/>
-                  <button onClick={addEmail} style={{ padding:"8px 14px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>+ Add</button>
-                </div>
-                {emails.length>0&&<div style={{ display:"flex",flexWrap:"wrap",gap:6,marginTop:8 }}>
-                  {emails.map(e=><span key={e} style={{ display:"flex",alignItems:"center",gap:5,padding:"3px 10px",background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:20,fontSize:11,color:"#818cf8" }}>{e}<button onClick={()=>removeEmail(e)} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,padding:0,lineHeight:1 }}>×</button></span>)}
-                </div>}
-                {emails.length>0&&<div style={{ fontSize:11,color:"#4b5563",marginTop:6 }}>📬 {emails.length} coach{emails.length>1?"es":""} en BCC — todos recibirán el email sin verse entre ellos</div>}
-              </div>
-              <div>
-                <div style={{ fontSize:10,color:"#6b7280",marginBottom:5,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8 }}>Message</div>
-                <textarea style={{ ...inp2,minHeight:100,resize:"vertical" }} value={message} onChange={e=>setMessage(e.target.value)}/>
-              </div>
-              <button onClick={sendEmails} disabled={sending||emails.length===0||sent} style={{ padding:"11px",borderRadius:9,border:"none",background:sent?"#10b981":emails.length===0?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#10b981,#059669)",color:emails.length===0?"#4b5563":"#fff",cursor:emails.length===0?"default":"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit",opacity:sending?0.7:1 }}>
-                {sent?`✓ Sent to ${emails.length} coach${emails.length>1?"es":""}!`:sending?"Sending...":emails.length===0?"Add emails first":`📧 Send to ${emails.length} coach${emails.length>1?"es":""} (BCC)`}
-              </button>
-              {errorMsg&&<div style={{ padding:"10px 14px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,fontSize:12,color:"#f87171" }}>{errorMsg}</div>}
-              <div style={{ fontSize:11,color:"#4b5563",textAlign:"center" }}>Los entrenadores no se ven entre ellos (BCC)</div>
-            </div>}
           </div>
         </div>
       </div>
@@ -663,6 +580,143 @@ const AgentLinkRow = ({ agent, link, IcCopy }) => {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 // ─── PUBLIC PLAYER PAGE (for coaches) ────────────────────────────────────────
+// ─── PUBLIC LEAD FORM ─────────────────────────────────────────────────────────
+const LeadForm = () => {
+  const SPORTS_LIST = ["Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
+  const [form,setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",sport:"Soccer",position:"",height:"",weight:"",gpa:"",sat_score:"",toefl_score:"",english_level:"B2",high_school:"",graduation_year:"",major:"",scholarship_pct:"",budget:"",fafsa:false,video_url:"",instagram:"",notes:"" });
+  const [submitting,setSubmitting] = useState(false);
+  const [submitted,setSubmitted] = useState(false);
+  const [error,setError] = useState("");
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const inp = { background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:9,padding:"11px 14px",color:"#f9fafb",fontSize:14,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
+  const lbl = { fontSize:11,fontWeight:600,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block" };
+
+  const submit = async () => {
+    if(!form.name.trim()||!form.email.trim()){ setError("Please enter your name and email."); return; }
+    setSubmitting(true); setError("");
+    try {
+      const {error:err} = await supabase.from("leads").insert({
+        name:form.name, email:form.email, phone:form.phone, nationality:form.nationality,
+        age:parseInt(form.age)||null, sport:form.sport, position:form.position,
+        height:parseFloat(form.height)||null, weight:parseFloat(form.weight)||null,
+        gpa:parseFloat(form.gpa)||null, sat_score:parseInt(form.sat_score)||null,
+        toefl_score:parseInt(form.toefl_score)||null, english_level:form.english_level,
+        high_school:form.high_school, graduation_year:parseInt(form.graduation_year)||null,
+        major:form.major, scholarship_pct:parseInt(form.scholarship_pct)||null,
+        budget:parseFloat(form.budget)||null, fafsa:form.fafsa,
+        video_url:form.video_url, instagram:form.instagram, notes:form.notes,
+      });
+      if(err) throw err;
+      setSubmitted(true);
+    } catch(e){ setError("Error submitting. Please try again."); }
+    setSubmitting(false);
+  };
+
+  if(submitted) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
+      <div style={{ textAlign:"center",maxWidth:400 }}>
+        <div style={{ fontSize:56,marginBottom:20 }}>🎉</div>
+        <h2 style={{ fontSize:24,fontWeight:800,color:"#f9fafb",marginBottom:10 }}>Application Received!</h2>
+        <p style={{ fontSize:15,color:"#9ca3af",lineHeight:1.6 }}>Thank you for your interest in FUTBOLUAGENCY. Our team will review your profile and get back to you soon.</p>
+        <div style={{ marginTop:24,padding:"16px 20px",background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:12 }}>
+          <div style={{ fontSize:13,color:"#818cf8",fontWeight:600 }}>📱 WhatsApp: +34 603 331 990</div>
+          <div style={{ fontSize:13,color:"#818cf8",fontWeight:600,marginTop:4 }}>📧 futboluagency@gmail.com</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",color:"#f9fafb" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07)}select option{background:#0f1117;color:#f9fafb}`}</style>
+      {/* Header */}
+      <div style={{ background:"#080a10",borderBottom:"1px solid rgba(255,255,255,0.05)",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+        <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:32,objectFit:"contain" }}/>
+        <div style={{ fontSize:12,color:"#374151",fontWeight:500 }}>Athlete Application Form</div>
+      </div>
+      <div style={{ maxWidth:620,margin:"0 auto",padding:"32px 20px 60px" }}>
+        <div style={{ textAlign:"center",marginBottom:32 }}>
+          <h1 style={{ fontSize:26,fontWeight:800,color:"#f9fafb",letterSpacing:-0.5,marginBottom:8 }}>Apply for a US Scholarship</h1>
+          <p style={{ fontSize:14,color:"#6b7280",lineHeight:1.6 }}>Fill out this form and our team will evaluate your profile to find the best university match for you.</p>
+        </div>
+
+        <div style={{ display:"flex",flexDirection:"column",gap:22 }}>
+          {/* Personal */}
+          <div style={{ background:"#0d0f16",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ fontSize:11,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Personal Information</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
+              <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Full Name *</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Your full name"/></div>
+              <div><label style={lbl}>Email *</label><input style={{ ...inp }} type="email" value={form.email} onChange={e=>set("email",e.target.value)} placeholder="your@email.com"/></div>
+              <div><label style={lbl}>Phone / WhatsApp</label><input style={inp} value={form.phone} onChange={e=>set("phone",e.target.value)} placeholder="+1 ..."/></div>
+              <div><label style={lbl}>Nationality</label><input style={inp} value={form.nationality} onChange={e=>set("nationality",e.target.value)} placeholder="Colombian, Spanish..."/></div>
+              <div><label style={lbl}>Age</label><input style={inp} type="number" value={form.age} onChange={e=>set("age",e.target.value)} placeholder="18"/></div>
+              <div><label style={lbl}>Instagram</label><input style={inp} value={form.instagram} onChange={e=>set("instagram",e.target.value)} placeholder="@username"/></div>
+            </div>
+          </div>
+
+          {/* Athletic */}
+          <div style={{ background:"#0d0f16",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Athletic Information</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
+              <div><label style={lbl}>Sport</label><select style={{ ...inp,cursor:"pointer" }} value={form.sport} onChange={e=>set("sport",e.target.value)}>{SPORTS_LIST.map(s=><option key={s}>{s}</option>)}</select></div>
+              <div><label style={lbl}>Position</label><input style={inp} value={form.position} onChange={e=>set("position",e.target.value)} placeholder="Striker, Goalkeeper..."/></div>
+              <div><label style={lbl}>Height (cm)</label><input style={inp} type="number" value={form.height} onChange={e=>set("height",e.target.value)} placeholder="180"/></div>
+              <div><label style={lbl}>Weight (kg)</label><input style={inp} type="number" value={form.weight} onChange={e=>set("weight",e.target.value)} placeholder="75"/></div>
+              <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Highlight Video Link</label><input style={inp} type="url" value={form.video_url} onChange={e=>set("video_url",e.target.value)} placeholder="https://youtube.com/..."/></div>
+            </div>
+          </div>
+
+          {/* Academic */}
+          <div style={{ background:"#0d0f16",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ fontSize:11,fontWeight:700,color:"#8b5cf6",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Academic Information</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
+              <div><label style={lbl}>GPA (0 - 4.0)</label><input style={inp} type="number" step="0.1" max="4.0" value={form.gpa} onChange={e=>set("gpa",e.target.value)} placeholder="3.5"/></div>
+              <div><label style={lbl}>SAT Score</label><input style={inp} type="number" value={form.sat_score} onChange={e=>set("sat_score",e.target.value)} placeholder="1200"/></div>
+              <div><label style={lbl}>TOEFL Score</label><input style={inp} type="number" value={form.toefl_score} onChange={e=>set("toefl_score",e.target.value)} placeholder="80"/></div>
+              <div><label style={lbl}>English Level</label><select style={{ ...inp,cursor:"pointer" }} value={form.english_level} onChange={e=>set("english_level",e.target.value)}>{["A1","A2","B1","B2","C1","C2","Native"].map(l=><option key={l}>{l}</option>)}</select></div>
+              <div><label style={lbl}>High School</label><input style={inp} value={form.high_school} onChange={e=>set("high_school",e.target.value)} placeholder="School name"/></div>
+              <div><label style={lbl}>Graduation Year</label><input style={inp} type="number" value={form.graduation_year} onChange={e=>set("graduation_year",e.target.value)} placeholder="2025"/></div>
+              <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Intended Major</label><input style={inp} value={form.major} onChange={e=>set("major",e.target.value)} placeholder="Business, Kinesiology, Communications..."/></div>
+            </div>
+          </div>
+
+          {/* Financial */}
+          <div style={{ background:"#0d0f16",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(16,185,129,0.1)" }}>
+            <div style={{ fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Scholarship Expectations</div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
+              <div><label style={lbl}>Scholarship % sought</label><input style={inp} type="number" min="0" max="100" value={form.scholarship_pct} onChange={e=>set("scholarship_pct",e.target.value)} placeholder="50"/></div>
+              <div><label style={lbl}>Annual budget max (USD)</label><input style={inp} type="number" value={form.budget} onChange={e=>set("budget",e.target.value)} placeholder="30000"/></div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={lbl}>FAFSA Eligible</label>
+                <div onClick={()=>set("fafsa",!form.fafsa)} style={{ display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"11px 14px",background:form.fafsa?"rgba(16,185,129,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${form.fafsa?"rgba(16,185,129,0.25)":"rgba(255,255,255,0.08)"}`,borderRadius:9 }}>
+                  <div style={{ width:20,height:20,borderRadius:5,background:form.fafsa?"#10b981":"transparent",border:`2px solid ${form.fafsa?"#10b981":"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff",flexShrink:0 }}>{form.fafsa?"✓":""}</div>
+                  <span style={{ fontSize:13,color:form.fafsa?"#10b981":"#9ca3af" }}>{form.fafsa?"Yes, I am FAFSA eligible":"I am not sure / not eligible for FAFSA"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div style={{ background:"#0d0f16",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(255,255,255,0.06)" }}>
+            <label style={{ ...lbl,color:"#f59e0b" }}>Anything else you'd like us to know?</label>
+            <textarea style={{ ...inp,minHeight:90,resize:"vertical" }} value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder="Previous experience, goals, questions..."/>
+          </div>
+
+          {error&&<div style={{ padding:"12px 16px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,fontSize:13,color:"#f87171" }}>{error}</div>}
+
+          <button onClick={submit} disabled={submitting} style={{ padding:"16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:15,fontWeight:700,fontFamily:"inherit",opacity:submitting?0.7:1 }}>
+            {submitting?"Submitting...":"Submit My Application →"}
+          </button>
+
+          <div style={{ textAlign:"center",fontSize:12,color:"#374151" }}>
+            Questions? Contact us: <span style={{ color:"#818cf8" }}>futboluagency@gmail.com</span> · WhatsApp <span style={{ color:"#818cf8" }}>+34 603 331 990</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PublicPlayerPage = ({ playerId }) => {
   const [player,setPlayer] = useState(null);
   const [loading,setLoading] = useState(true);
@@ -807,6 +861,7 @@ const PublicPlayerPage = ({ playerId }) => {
 export default function App() {
   const [players,setPlayers]=useState([]);
   const [agents,setAgents]=useState([]);
+  const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
   const [nav,setNav]=useState("dashboard");
   const [selected,setSelected]=useState(null);
@@ -831,14 +886,15 @@ export default function App() {
   const loadAll=useCallback(async()=>{
     setLoading(true);
     try {
-      const [{data:rows},{data:allOffers},{data:allTimeline},{data:agentRows}]=await Promise.all([
+      const [{data:rows},{data:allOffers},{data:allTimeline},{data:agentRows},{data:leadRows}]=await Promise.all([
         supabase.from("players").select("*").order("created_at",{ascending:false}),
         supabase.from("offers").select("*"),
         supabase.from("timeline").select("*").order("date",{ascending:true}),
         supabase.from("agents").select("*").order("created_at",{ascending:true}),
+        supabase.from("leads").select("*").order("created_at",{ascending:false}),
       ]);
       const mapped=(rows||[]).map(r=>dbToPlayer(r,(allOffers||[]).filter(o=>o.player_id===r.id),(allTimeline||[]).filter(t=>t.player_id===r.id)));
-      setPlayers(mapped); setAgents(agentRows||[]);
+      setPlayers(mapped); setAgents(agentRows||[]); setLeads(leadRows||[]);
       setSelected(prev=>prev?(mapped.find(p=>p.id===prev.id)||prev):null);
       // Set current agent name from slug
       if(agentRows&&agentRows.length>0){
@@ -855,6 +911,13 @@ export default function App() {
   const addPlayer=async(p)=>{ const {data}=await supabase.from("players").insert(playerToDb(p)).select().single(); if(data) await supabase.from("timeline").insert({player_id:data.id,date:new Date().toISOString().split("T")[0],event:"Perfil creado",type:"contact"}); await loadAll(); };
   const saveAgent=async(a)=>{ if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null}).eq("id",a.id); else await supabase.from("agents").insert({name:a.name,role:a.role||"Agente",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null}); await loadAll(); };
   const deleteAgent=async(id)=>{ await supabase.from("agents").delete().eq("id",id); await loadAll(); };
+  const deleteLead=async(id)=>{ await supabase.from("leads").delete().eq("id",id); await loadAll(); };
+  const convertLead=async(lead)=>{
+    const p={ name:lead.name,sport:lead.sport||"Soccer",nationality:lead.nationality,age:lead.age,position:lead.position,foot:"Right",height:lead.height,weight:lead.weight,status:"Prospect",agent:agentNames[0]||"",phone:lead.phone,email:lead.email,instagram:lead.instagram,videoUrl:lead.video_url,photoUrl:null,gpa:lead.gpa,satScore:lead.sat_score,englishLevel:lead.english_level,highSchool:lead.high_school,graduationYear:lead.graduation_year,major:lead.major,toeflScore:lead.toefl_score,university:"",state:"",scholarshipPct:lead.scholarship_pct||0,startDate:"",contractEnd:"",notes:lead.notes||"",totalFee:2700,payment1Amount:900,payment2Amount:1800,budget:lead.budget,fafsa:lead.fafsa||false,sportData:{} };
+    await addPlayer(p);
+    await supabase.from("leads").delete().eq("id",lead.id);
+    await loadAll();
+  };
 
   const filtered=useMemo(()=>players.filter(p=>{ const s=search.toLowerCase(); return (p.name.toLowerCase().includes(s)||p.university?.toLowerCase().includes(s)||p.nationality?.toLowerCase().includes(s))&&(fSport==="Todos"||p.sport===fSport)&&(fStatus==="Todos"||p.status===fStatus)&&(fAgent==="Todos"||p.agent===fAgent); }),[players,search,fSport,fStatus,fAgent]);
 
@@ -863,13 +926,15 @@ export default function App() {
   const agentStats=agentNames.map(name=>({ name,agent:agents.find(a=>a.name===name),total:players.reduce((s,p)=>s+(p.payment1?.paid&&p.payment1?.paidBy===name?(p.payment1Amount||900):0)+(p.payment2?.paid&&p.payment2?.paidBy===name?(p.payment2Amount||1800):0),0),p1:players.filter(p=>p.payment1?.paid&&p.payment1?.paidBy===name).length,p2:players.filter(p=>p.payment2?.paid&&p.payment2?.paidBy===name).length,count:players.filter(p=>p.agent===name).length }));
   const allOffers=players.flatMap(p=>(p.offers||[]).map(o=>({...o,playerName:p.name,playerId:p.id})));
   const go=(n)=>{ setNav(n); setSelected(null); setMenuOpen(false); };
-  const navItems=[{id:"dashboard",l:"Dashboard",icon:I.dash},{id:"players",l:"Jugadores",icon:I.players},{id:"offers",l:"Universidades",icon:I.uni},{id:"payments",l:"Pagos",icon:I.fin},{id:"team",l:"Equipo",icon:I.team}];
+  const navItems=[{id:"dashboard",l:"Dashboard",icon:I.dash},{id:"players",l:"Jugadores",icon:I.players},{id:"leads",l:"Leads",icon:"🎯"},{id:"offers",l:"Universidades",icon:I.uni},{id:"payments",l:"Pagos",icon:I.fin},{id:"team",l:"Equipo",icon:I.team}];
 
   // Greeting for agent link
   const agentObj=currentAgent?agents.find(a=>a.name===currentAgent||a.name.toLowerCase().includes(currentAgent.toLowerCase())):null;
 
   // Public player profile — show only the athlete page, no CRM access
   const publicPlayerId = new URLSearchParams(window.location.search).get("player");
+  const isLeadForm = new URLSearchParams(window.location.search).get("form");
+  if(isLeadForm) return <LeadForm/>;
   if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
 
   if(loading) return (
@@ -1053,6 +1118,66 @@ export default function App() {
             </div>
           )}
           {nav==="players"&&selected&&<PlayerDetail player={selected} onBack={()=>setSelected(null)} onRefresh={loadAll} agentList={agentNames}/>}
+
+          {/* LEADS */}
+          {nav==="leads"&&(
+            <div>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10 }}>
+                <div>
+                  <h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Leads & Prospectos</h1>
+                  <p style={{ color:"#374151",fontSize:13,marginTop:3 }}>{leads.length} formularios recibidos</p>
+                </div>
+                <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+                  <div style={{ background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:9,padding:"8px 14px" }}>
+                    <span style={{ fontSize:12,color:"#818cf8",fontWeight:600 }}>🔗 Link del formulario:</span>
+                    <span style={{ fontSize:11,color:"#6b7280",marginLeft:6 }}>{window.location.origin}?form=1</span>
+                    <button onClick={()=>{ navigator.clipboard.writeText(`${window.location.origin}?form=1`); }} style={{ marginLeft:8,background:"none",border:"none",color:"#6366f1",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Copiar</button>
+                  </div>
+                </div>
+              </div>
+              {leads.length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}>
+                <div style={{ fontSize:36,marginBottom:10 }}>🎯</div>
+                <div style={{ fontWeight:600,color:"#6b7280",marginBottom:6 }}>Sin leads todavía</div>
+                <div style={{ fontSize:13,color:"#374151" }}>Comparte el link del formulario con tus prospectos</div>
+              </div>}
+              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                {leads.map(lead=>(
+                  <Card key={lead.id} style={{ padding:"16px 18px" }}>
+                    <div style={{ display:"flex",alignItems:"flex-start",gap:14,flexWrap:"wrap" }}>
+                      <div style={{ flex:1,minWidth:200 }}>
+                        <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap" }}>
+                          <div style={{ fontSize:16,fontWeight:700,color:"#f9fafb" }}>{lead.name}</div>
+                          <Tag label={lead.sport||"—"} color="#6366f1"/>
+                          <Tag label={lead.nationality||"—"} color="#3b82f6"/>
+                          <span style={{ fontSize:10,color:"#374151" }}>{new Date(lead.created_at).toLocaleDateString("es-ES")}</span>
+                        </div>
+                        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8 }}>
+                          {[["GPA",lead.gpa,lead.gpa>=3.5?"#10b981":lead.gpa>=3?"#f59e0b":"#9ca3af"],["SAT",lead.sat_score,"#6366f1"],["TOEFL",lead.toefl_score,"#8b5cf6"],["Inglés",lead.english_level,"#3b82f6"]].map(([l,v,c])=>v?(
+                            <div key={l} style={{ background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 10px" }}>
+                              <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>{l}</div>
+                              <div style={{ fontSize:14,fontWeight:700,color:c }}>{v}</div>
+                            </div>
+                          ):null)}
+                          {lead.scholarship_pct>0&&<div style={{ background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 10px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>Beca buscada</div><div style={{ fontSize:14,fontWeight:700,color:"#6366f1" }}>{lead.scholarship_pct}%</div></div>}
+                          {lead.budget&&<div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.1)",borderRadius:8,padding:"8px 10px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>Budget</div><div style={{ fontSize:14,fontWeight:700,color:"#10b981" }}>${Number(lead.budget).toLocaleString()}</div></div>}
+                        </div>
+                        {lead.notes&&<div style={{ marginTop:8,fontSize:12,color:"#6b7280",fontStyle:"italic" }}>{lead.notes}</div>}
+                        <div style={{ marginTop:8,display:"flex",gap:10,fontSize:12,color:"#4b5563",flexWrap:"wrap" }}>
+                          {lead.email&&<span>📧 {lead.email}</span>}
+                          {lead.phone&&<span>📱 {lead.phone}</span>}
+                          {lead.video_url&&<a href={lead.video_url} target="_blank" rel="noreferrer" style={{ color:"#f87171",textDecoration:"none" }}>▶ Video</a>}
+                        </div>
+                      </div>
+                      <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                        <button onClick={()=>{ if(window.confirm(`¿Convertir a ${lead.name} en atleta?`)) convertLead(lead); }} style={{ padding:"8px 14px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>✓ Convertir en atleta</button>
+                        <button onClick={()=>{ if(window.confirm(`¿Eliminar lead ${lead.name}?`)) deleteLead(lead.id); }} style={{ padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.2)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>Eliminar</button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* OFFERS */}
           {nav==="offers"&&(

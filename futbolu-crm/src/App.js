@@ -393,23 +393,34 @@ const AgentModal = ({ initial, onClose, onSave }) => {
 };
 
 // ─── PLAYER DETAIL ────────────────────────────────────────────────────────────
-const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
+const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken }) => {
   const [tab,setTab]=useState("profile");
   const [editModal,setEditModal]=useState(false);
   const [offerModal,setOfferModal]=useState(false);
   const [publicModal,setPublicModal]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [tokenCopied,setTokenCopied]=useState(false);
+  const [playerDocs,setPlayerDocs]=useState([]);
   const paid=(player.payment1?.paid?(player.payment1Amount||900):0)+(player.payment2?.paid?(player.payment2Amount||1800):0);
   const totalFee=player.totalFee||2700;
   const sd=player.sportData||{};
   const sf=SPORT_FIELDS[player.sport]||[];
+  const portalUrl = player.access_token ? `${window.location.origin}?athlete=${player.access_token}` : null;
+
+  useEffect(()=>{
+    const loadDocs = async () => {
+      const {data} = await supabase.from("documents").select("*").eq("player_id",player.id);
+      setPlayerDocs(data||[]);
+    };
+    loadDocs();
+  },[player.id]);
 
   const handlePayment=async(num,agent)=>{ setSaving(true); const date=agent?new Date().toISOString().split("T")[0]:null; const dbU=num===1?{payment1_paid:!!agent,payment1_paid_by:agent,payment1_date:date}:{payment2_paid:!!agent,payment2_paid_by:agent,payment2_date:date}; await supabase.from("players").update(dbU).eq("id",player.id); if(agent) await supabase.from("timeline").insert({player_id:player.id,date,event:`${num===1?`Pago inicial (${player.payment1Amount||900}€)`:`Segundo pago (${player.payment2Amount||1800}€)`} cobrado por ${agent}`,type:"payment"}); await onRefresh(); setSaving(false); };
   const addOffer=async(o)=>{ await supabase.from("offers").insert({player_id:player.id,university:o.university,state:o.state,division:o.division,scholarship_pct:o.scholarshipPct,amount:o.amount,season:o.season,status:o.status,notes:o.notes,logo_url:o.logoUrl||null}); await onRefresh(); };
   const updateOfferStatus=async(id,status)=>{ await supabase.from("offers").update({status}).eq("id",id); await onRefresh(); };
   const removeOffer=async(id)=>{ await supabase.from("offers").delete().eq("id",id); await onRefresh(); };
 
-  const tabs=[{id:"profile",l:"Perfil"},{id:"sports",l:"Deportivo"},{id:"academic",l:"Académico"},{id:"offers",l:`Ofertas (${player.offers?.length||0})`},{id:"payments",l:"Pagos"},{id:"timeline",l:"Historial"}];
+  const tabs=[{id:"profile",l:"Perfil"},{id:"sports",l:"Deportivo"},{id:"academic",l:"Académico"},{id:"offers",l:`Ofertas (${player.offers?.length||0})`},{id:"payments",l:"Pagos"},{id:"documents",l:`Docs (${playerDocs.length}/${REQUIRED_DOCS.length})`},{id:"timeline",l:"Historial"}];
   const tlC={contact:"#6366f1",contract:"#8b5cf6",milestone:"#10b981",achievement:"#f59e0b",payment:"#22c55e"};
   const tlE={contact:"👋",contract:"✍️",milestone:"🎯",achievement:"🏆",payment:"💰"};
 
@@ -422,9 +433,15 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
 
   return (
     <div>
-      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16 }}>
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,gap:8,flexWrap:"wrap" }}>
         <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,padding:0,fontFamily:"inherit" }}>{I.back} Volver</button>
-        <button onClick={()=>setPublicModal(true)} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(99,102,241,0.2)",background:"rgba(99,102,241,0.06)",color:"#818cf8",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{I.share} Compartir</button>
+        <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
+          <button onClick={()=>setPublicModal(true)} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(99,102,241,0.2)",background:"rgba(99,102,241,0.06)",color:"#818cf8",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{I.share} Compartir</button>
+          {portalUrl
+            ? <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🏅 {tokenCopied?"¡Copiado!":"Portal atleta"}</button>
+            : <button onClick={async()=>{ const t=await onGenerateToken(player.id); if(t){ navigator.clipboard.writeText(`${window.location.origin}?athlete=${t}`); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }}} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(245,158,11,0.25)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🔑 Crear portal</button>
+          }
+        </div>
       </div>
 
       {/* Hero */}
@@ -554,6 +571,43 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList }) => {
         {(!player.timeline||player.timeline.length===0)&&<div style={{ textAlign:"center",padding:40,color:"#4b5563" }}>Sin eventos</div>}
       </div>}
 
+      {tab==="documents"&&<div>
+        <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:12,fontSize:12,color:"#818cf8" }}>
+          📋 Documentos subidos por el atleta desde su portal personal. Haz clic en cada archivo para descargarlo.
+        </div>
+        {/* Portal link */}
+        <div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:12 }}>
+          <div style={{ fontSize:10,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:1,marginBottom:6 }}>Link del portal del atleta</div>
+          {portalUrl
+            ? <div style={{ display:"flex",gap:8 }}>
+                <div style={{ flex:1,fontSize:11,color:"#6b7280",background:"rgba(0,0,0,0.3)",borderRadius:7,padding:"7px 10px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{portalUrl}</div>
+                <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ padding:"7px 12px",borderRadius:7,border:"none",background:tokenCopied?"#10b981":"#6366f1",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>{tokenCopied?"✓ Copiado":"Copiar"}</button>
+              </div>
+            : <div style={{ fontSize:12,color:"#6b7280" }}>No hay portal creado. Pulsa <strong style={{ color:"#f59e0b" }}>"Crear portal"</strong> arriba para generar el link.</div>
+          }
+        </div>
+        {/* Documents list */}
+        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+          {REQUIRED_DOCS.map(doc=>{
+            const uploaded = playerDocs.find(d=>d.doc_type===doc.id);
+            return (
+              <div key={doc.id} style={{ display:"flex",alignItems:"center",gap:12,background:"#0f1117",border:`1px solid ${uploaded?"rgba(16,185,129,0.18)":"rgba(255,255,255,0.05)"}`,borderRadius:12,padding:"13px 16px" }}>
+                <div style={{ fontSize:18,flexShrink:0 }}>{uploaded?"✅":"📄"}</div>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:13,fontWeight:600,color:"#f9fafb" }}>{doc.label}</div>
+                  <div style={{ fontSize:11,color:"#4b5563",marginTop:2 }}>{doc.desc}</div>
+                  {uploaded&&<div style={{ fontSize:11,color:"#10b981",marginTop:3 }}>✓ Subido: {uploaded.file_name}</div>}
+                </div>
+                {uploaded
+                  ? <a href={uploaded.file_url} target="_blank" rel="noreferrer" style={{ padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",textDecoration:"none",fontSize:12,fontWeight:600,whiteSpace:"nowrap" }}>⬇ Descargar</a>
+                  : <span style={{ fontSize:11,color:"#4b5563",fontStyle:"italic" }}>Pendiente</span>
+                }
+              </div>
+            );
+          })}
+        </div>
+      </div>}
+
       {editModal&&<PlayerModal initial={player} onClose={()=>setEditModal(false)} onSave={async(p)=>{ await supabase.from("players").update(playerToDb(p)).eq("id",p.id); await onRefresh(); }} agentList={agentList}/>}
       {offerModal&&<OfferModal onClose={()=>setOfferModal(false)} onAdd={addOffer}/>}
       {publicModal&&<PublicProfile player={player} onClose={()=>setPublicModal(false)}/>}
@@ -669,6 +723,49 @@ const LeadDetail = ({ lead, onClose, onConvert, onDelete }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const CommissionForm = ({ players, onSave, onRefresh }) => {
+  const [f,setF]=useState({ player_id:"",referred_by:"",percentage:10,amount:"",notes:"",paid:false });
+  const [saving,setSaving]=useState(false);
+  const inp2 = { background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"8px 12px",color:"#f9fafb",fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
+  const selectedPlayer = players.find(p=>p.id===f.player_id);
+  const suggestedAmount = selectedPlayer ? Math.round((selectedPlayer.totalFee||2700)*(f.percentage/100)) : 0;
+  const save = async () => {
+    if(!f.player_id||!f.referred_by) return;
+    setSaving(true);
+    await onSave({ player_id:f.player_id, referred_by:f.referred_by, percentage:parseFloat(f.percentage)||10, amount:parseFloat(f.amount)||suggestedAmount, notes:f.notes, paid:false });
+    setF({ player_id:"",referred_by:"",percentage:10,amount:"",notes:"",paid:false });
+    setSaving(false);
+  };
+  return (
+    <Card style={{ padding:"18px 20px",border:"1px solid rgba(245,158,11,0.12)" }}>
+      <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>Nueva comisión</div>
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Atleta</label>
+          <select style={{ ...inp2,width:"100%",cursor:"pointer" }} value={f.player_id} onChange={e=>setF(x=>({...x,player_id:e.target.value}))}>
+            <option value="">Seleccionar atleta...</option>
+            {players.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Referido por</label>
+          <input style={{ ...inp2,width:"100%" }} value={f.referred_by} onChange={e=>setF(x=>({...x,referred_by:e.target.value}))} placeholder="Nombre del referidor"/>
+        </div>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% Comisión</label>
+          <input style={{ ...inp2,width:"100%" }} type="number" min="0" max="100" value={f.percentage} onChange={e=>setF(x=>({...x,percentage:e.target.value}))}/>
+        </div>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (€) {suggestedAmount>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggestedAmount}€</span>}</label>
+          <input style={{ ...inp2,width:"100%" }} type="number" value={f.amount} onChange={e=>setF(x=>({...x,amount:e.target.value}))} placeholder={suggestedAmount||"0"}/>
+        </div>
+        <div style={{ gridColumn:"1/-1" }}><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Notas</label>
+          <input style={{ ...inp2,width:"100%" }} value={f.notes} onChange={e=>setF(x=>({...x,notes:e.target.value}))} placeholder="Detalles del acuerdo..."/>
+        </div>
+      </div>
+      <button onClick={save} disabled={saving||!f.player_id||!f.referred_by} style={{ marginTop:14,width:"100%",padding:"10px",borderRadius:9,border:"none",background:(!f.player_id||!f.referred_by)?"rgba(255,255,255,0.04)":"linear-gradient(135deg,#f59e0b,#d97706)",color:(!f.player_id||!f.referred_by)?"#4b5563":"#fff",cursor:(!f.player_id||!f.referred_by)?"default":"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:saving?0.7:1 }}>
+        {saving?"Guardando...":"+ Añadir comisión"}
+      </button>
+    </Card>
   );
 };
 
@@ -1058,10 +1155,225 @@ const PublicPlayerPage = ({ playerId }) => {
   );
 };
 
+// ─── REQUIRED DOCUMENTS ──────────────────────────────────────────────────────
+const REQUIRED_DOCS = [
+  { id:"passport", label:"Passport (scanned)", desc:"Valid passport — all pages" },
+  { id:"grades_eso3", label:"3º ESO Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_eso4", label:"4º ESO Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_bach1", label:"1º Bachillerato Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_bach2", label:"2º Bachillerato Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"vaccines", label:"Vaccination Record", desc:"Official vaccination certificate" },
+  { id:"gpa_cert", label:"GPA Certificate", desc:"Official GPA document from school" },
+  { id:"english_cert", label:"English Certificate", desc:"TOEFL, IELTS or equivalent" },
+  { id:"sat_cert", label:"SAT Score Report", desc:"Official SAT score report" },
+  { id:"photo", label:"Passport Photo", desc:"Recent passport-style photo" },
+];
+
+// ─── ATHLETE PORTAL ───────────────────────────────────────────────────────────
+const AthletePortal = ({ token }) => {
+  const [player,setPlayer] = useState(null);
+  const [documents,setDocuments] = useState([]);
+  const [offers,setOffers] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [uploading,setUploading] = useState({});
+  const [tab,setTab] = useState("profile");
+  const fileRefs = useRef({});
+
+  useEffect(()=>{
+    const load = async () => {
+      const {data:row} = await supabase.from("players").select("*").eq("access_token",token).single();
+      if(!row){ setLoading(false); return; }
+      const {data:offersData} = await supabase.from("offers").select("*").eq("player_id",row.id);
+      const {data:docsData} = await supabase.from("documents").select("*").eq("player_id",row.id);
+      setPlayer(row);
+      setOffers(offersData||[]);
+      setDocuments(docsData||[]);
+      setLoading(false);
+    };
+    load();
+  },[token]);
+
+  const uploadDoc = async (docType, docLabel, file) => {
+    if(!file||!player) return;
+    setUploading(u=>({...u,[docType]:true}));
+    const ext = file.name.split(".").pop();
+    const filename = `${player.id}/${docType}_${Date.now()}.${ext}`;
+    const {error:upErr} = await supabase.storage.from("avatars").upload(filename, file, {upsert:true});
+    if(!upErr){
+      const fileUrl = `${SUPA_URL}/storage/v1/object/public/avatars/${filename}`;
+      // Check if doc already exists
+      const existing = documents.find(d=>d.doc_type===docType);
+      if(existing){
+        await supabase.from("documents").update({file_url:fileUrl,file_name:file.name,status:"Pendiente de revisión",created_at:new Date().toISOString()}).eq("id",existing.id);
+      } else {
+        await supabase.from("documents").insert({player_id:player.id,name:docLabel,file_name:file.name,file_url:fileUrl,doc_type:docType,status:"Pendiente de revisión"});
+      }
+      const {data:docsData} = await supabase.from("documents").select("*").eq("player_id",player.id);
+      setDocuments(docsData||[]);
+    }
+    setUploading(u=>({...u,[docType]:false}));
+  };
+
+  if(loading) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12 }}>
+      <img src="/logo.png" alt="FUA" onError={e=>e.target.style.display="none"} style={{ height:44,objectFit:"contain" }}/>
+      <div style={{ fontSize:13,color:"#374151" }}>Loading your profile...</div>
+    </div>
+  );
+
+  if(!player) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,padding:20 }}>
+      <div style={{ fontSize:32,marginBottom:8 }}>🔒</div>
+      <div style={{ fontSize:18,fontWeight:700,color:"#f9fafb" }}>Invalid access link</div>
+      <div style={{ fontSize:13,color:"#6b7280",textAlign:"center" }}>This link is not valid. Please contact your agent at FUTBOLUAGENCY.</div>
+      <div style={{ marginTop:16,fontSize:13,color:"#818cf8" }}>📱 WhatsApp: +34 603 331 990</div>
+    </div>
+  );
+
+  const docsUploaded = documents.length;
+  const docsTotal = REQUIRED_DOCS.length;
+  const pct = Math.round((docsUploaded/docsTotal)*100);
+  const statusColors = {"Scholarship":"#10b981","In Process":"#f59e0b","Prospect":"#6366f1","Inactive":"#6b7280"};
+  const offerColors = {"Interested":"#6366f1","Formal Offer":"#f59e0b","Pre-accepted":"#10b981","Declined":"#ef4444","Chosen ✓":"#22c55e"};
+
+  return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",color:"#f9fafb" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07)}`}</style>
+
+      {/* Header */}
+      <div style={{ background:"#060810",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10 }}>
+        <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:30,objectFit:"contain" }}/>
+        <div style={{ fontSize:12,color:"#4b5563" }}>My Athlete Portal</div>
+      </div>
+
+      <div style={{ maxWidth:680,margin:"0 auto",padding:"24px 16px 60px" }}>
+        {/* Hero */}
+        <div style={{ background:"#0a0c14",border:"1px solid rgba(255,255,255,0.07)",borderRadius:16,padding:"22px",marginBottom:14 }}>
+          <div style={{ display:"flex",gap:16,alignItems:"center",flexWrap:"wrap" }}>
+            {player.photo_url
+              ? <img src={`${SUPA_URL}/storage/v1/object/public/avatars/${player.photo_url}`} alt={player.name} style={{ width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"2px solid rgba(99,102,241,0.4)" }}/>
+              : <div style={{ width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,#6366f188,#6366f1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:800,color:"#fff" }}>{player.name?.split(" ").map(n=>n[0]).slice(0,2).join("")}</div>
+            }
+            <div style={{ flex:1 }}>
+              <h1 style={{ fontSize:22,fontWeight:800,color:"#f9fafb",marginBottom:6 }}>{player.name}</h1>
+              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                <span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:`${statusColors[player.status]||"#6366f1"}15`,color:statusColors[player.status]||"#6366f1",border:`1px solid ${statusColors[player.status]||"#6366f1"}25` }}>{player.status}</span>
+                {player.sport&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(99,102,241,0.1)",color:"#818cf8",border:"1px solid rgba(99,102,241,0.2)" }}>{player.sport}</span>}
+                {player.nationality&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:500,background:"rgba(255,255,255,0.04)",color:"#9ca3af",border:"1px solid rgba(255,255,255,0.06)" }}>{player.nationality}</span>}
+              </div>
+            </div>
+          </div>
+          {/* Docs progress */}
+          <div style={{ marginTop:16 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:6 }}>
+              <span style={{ color:"#9ca3af",fontWeight:500 }}>Documents uploaded</span>
+              <span style={{ color:pct===100?"#10b981":"#f59e0b",fontWeight:700 }}>{docsUploaded}/{docsTotal}</span>
+            </div>
+            <div style={{ background:"rgba(255,255,255,0.06)",borderRadius:99,height:6 }}>
+              <div style={{ width:`${pct}%`,background:pct===100?"#10b981":"linear-gradient(90deg,#6366f1,#8b5cf6)",height:"100%",borderRadius:99,transition:"width .4s" }}/>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display:"flex",gap:2,marginBottom:14,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:3 }}>
+          {[{id:"profile",l:"My Profile"},{id:"offers",l:`Offers (${offers.filter(o=>o.status!=="Declined").length})`},{id:"documents",l:`Documents (${docsUploaded}/${docsTotal})`}].map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{ flex:1,padding:"8px 10px",borderRadius:9,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t.id?"rgba(99,102,241,0.18)":"none",color:tab===t.id?"#a5b4fc":"#6b7280",fontFamily:"inherit" }}>{t.l}</button>
+          ))}
+        </div>
+
+        {/* PROFILE TAB */}
+        {tab==="profile"&&<div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+          {player.video_url&&<a href={player.video_url} target="_blank" rel="noreferrer" style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.18)",borderRadius:12,textDecoration:"none" }}>
+            <div style={{ width:38,height:38,background:"#ef4444",borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:14,flexShrink:0 }}>▶</div>
+            <div><div style={{ fontSize:14,fontWeight:700,color:"#f9fafb" }}>My Highlight Video</div><div style={{ fontSize:12,color:"#9ca3af",marginTop:2 }}>View your athletic reel</div></div>
+          </a>}
+          <div style={{ background:"#0a0c14",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"16px 18px" }}>
+            <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12 }}>Academic Profile</div>
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12 }}>
+              {[["GPA",player.gpa,player.gpa>=3.5?"#10b981":player.gpa>=3?"#f59e0b":"#9ca3af"],["SAT",player.sat_score,"#6366f1"],["TOEFL",player.toefl_score,"#8b5cf6"],["English",player.english_level,"#3b82f6"]].map(([l,v,c])=>(
+                <div key={l} style={{ background:"rgba(255,255,255,0.03)",borderRadius:10,padding:"10px 6px",textAlign:"center" }}>
+                  <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:5,fontWeight:600 }}>{l}</div>
+                  <div style={{ fontSize:16,fontWeight:800,color:c }}>{v||"—"}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+              {[["Sport",player.sport],["Position",player.position],["High School",player.high_school],["Graduation",player.graduation_year],["Major",player.major],["University",player.university||"TBD"]].filter(([,v])=>v).map(([l,v])=>(
+                <div key={l}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:3,fontWeight:600 }}>{l}</div><div style={{ fontSize:12,color:"#e5e7eb",fontWeight:500 }}>{v}</div></div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"14px 18px",fontSize:12,color:"#818cf8" }}>
+            💬 Questions? Contact your agent: <strong>futboluagency@gmail.com</strong> · WhatsApp <strong>+34 603 331 990</strong>
+          </div>
+        </div>}
+
+        {/* OFFERS TAB */}
+        {tab==="offers"&&<div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+          {offers.filter(o=>o.status!=="Declined").length===0&&<div style={{ textAlign:"center",padding:40,color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>🏛️</div><div>No offers yet — your agent is working on it!</div></div>}
+          {offers.filter(o=>o.status!=="Declined").sort((a,b)=>(b.amount||0)-(a.amount||0)).map(o=>(
+            <div key={o.id} style={{ background:"#0a0c14",border:`1px solid ${o.status==="Chosen ✓"?"rgba(34,197,94,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:14,padding:"16px 18px" }}>
+              <div style={{ display:"flex",alignItems:"flex-start",gap:12 }}>
+                <div style={{ width:40,height:40,borderRadius:9,background:"linear-gradient(135deg,#1e3a8a,#2563eb)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:"#fff",flexShrink:0 }}>{o.university?.split(" ").map(w=>w[0]).slice(0,2).join("")||"U"}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:15,fontWeight:700,color:"#f9fafb",marginBottom:5 }}>{o.university}</div>
+                  <div style={{ display:"flex",gap:10,flexWrap:"wrap",fontSize:12,color:"#9ca3af",marginBottom:8 }}>
+                    {o.state&&<span>{o.state}</span>}
+                    {o.division&&<span style={{ color:"#6b7280" }}>{o.division}</span>}
+                    {o.season&&<span style={{ color:"#f59e0b",fontWeight:600 }}>{o.season}</span>}
+                  </div>
+                  <div style={{ display:"flex",gap:10,flexWrap:"wrap" }}>
+                    {o.scholarship_pct>0&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:"rgba(99,102,241,0.1)",color:"#818cf8" }}>Scholarship: {o.scholarship_pct}%</span>}
+                    {o.amount&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:"rgba(16,185,129,0.1)",color:"#10b981" }}>{Number(o.amount).toLocaleString()}€/year</span>}
+                    <span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:`${offerColors[o.status]||"#6b7280"}15`,color:offerColors[o.status]||"#6b7280",border:`1px solid ${offerColors[o.status]||"#6b7280"}25` }}>{o.status}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>}
+
+        {/* DOCUMENTS TAB */}
+        {tab==="documents"&&<div>
+          <div style={{ background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:13,color:"#fbbf24" }}>
+            📋 Upload all required documents. Files are securely stored and reviewed by FUTBOLUAGENCY. Accepted formats: PDF, JPG, PNG.
+          </div>
+          <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+            {REQUIRED_DOCS.map(doc=>{
+              const uploaded = documents.find(d=>d.doc_type===doc.id);
+              const isUploading = uploading[doc.id];
+              return (
+                <div key={doc.id} style={{ background:"#0a0c14",border:`1px solid ${uploaded?"rgba(16,185,129,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:14 }}>
+                  <div style={{ width:36,height:36,borderRadius:9,background:uploaded?"rgba(16,185,129,0.12)":"rgba(255,255,255,0.04)",border:`1px solid ${uploaded?"rgba(16,185,129,0.25)":"rgba(255,255,255,0.08)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0 }}>
+                    {uploaded?"✅":"📄"}
+                  </div>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontSize:13,fontWeight:600,color:"#f9fafb",marginBottom:2 }}>{doc.label}</div>
+                    <div style={{ fontSize:11,color:"#4b5563" }}>{doc.desc}</div>
+                    {uploaded&&<div style={{ fontSize:11,color:"#10b981",marginTop:3 }}>✓ {uploaded.file_name} · {uploaded.status}</div>}
+                  </div>
+                  <div style={{ flexShrink:0 }}>
+                    <input ref={el=>fileRefs.current[doc.id]=el} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ const f=e.target.files[0]; if(f) uploadDoc(doc.id,doc.label,f); }}/>
+                    <button onClick={()=>fileRefs.current[doc.id]?.click()} disabled={isUploading} style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${uploaded?"rgba(16,185,129,0.3)":"rgba(99,102,241,0.3)"}`,background:uploaded?"rgba(16,185,129,0.08)":"rgba(99,102,241,0.1)",color:uploaded?"#10b981":"#818cf8",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                      {isUploading?"Uploading...":uploaded?"Replace":"Upload"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [players,setPlayers]=useState([]);
   const [agents,setAgents]=useState([]);
   const [leads,setLeads]=useState([]);
+  const [commissions,setCommissions]=useState([]);
   const [loading,setLoading]=useState(true);
   const [nav,setNav]=useState("dashboard");
   const [selected,setSelected]=useState(null);
@@ -1087,15 +1399,16 @@ export default function App() {
   const loadAll=useCallback(async()=>{
     setLoading(true);
     try {
-      const [{data:rows},{data:allOffers},{data:allTimeline},{data:agentRows},{data:leadRows}]=await Promise.all([
+      const [{data:rows},{data:allOffers},{data:allTimeline},{data:agentRows},{data:leadRows},{data:commRows}]=await Promise.all([
         supabase.from("players").select("*").order("created_at",{ascending:false}),
         supabase.from("offers").select("*"),
         supabase.from("timeline").select("*").order("date",{ascending:true}),
         supabase.from("agents").select("*").order("created_at",{ascending:true}),
         supabase.from("leads").select("*").order("created_at",{ascending:false}),
+        supabase.from("commissions").select("*").order("created_at",{ascending:false}),
       ]);
       const mapped=(rows||[]).map(r=>dbToPlayer(r,(allOffers||[]).filter(o=>o.player_id===r.id),(allTimeline||[]).filter(t=>t.player_id===r.id)));
-      setPlayers(mapped); setAgents(agentRows||[]); setLeads(leadRows||[]);
+      setPlayers(mapped); setAgents(agentRows||[]); setLeads(leadRows||[]); setCommissions(commRows||[]);
       setSelected(prev=>prev?(mapped.find(p=>p.id===prev.id)||prev):null);
       // Set current agent name from slug
       if(agentRows&&agentRows.length>0){
@@ -1113,6 +1426,18 @@ export default function App() {
   const saveAgent=async(a)=>{ if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null}).eq("id",a.id); else await supabase.from("agents").insert({name:a.name,role:a.role||"Agente",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null}); await loadAll(); };
   const deleteAgent=async(id)=>{ await supabase.from("agents").delete().eq("id",id); await loadAll(); };
   const deleteLead=async(id)=>{ await supabase.from("leads").delete().eq("id",id); await loadAll(); };
+  const generateAthleteToken = async (playerId) => {
+    const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
+    await supabase.from("players").update({access_token:token}).eq("id",playerId);
+    await loadAll();
+    return token;
+  };
+  const saveCommission = async (c) => {
+    if(c.id) await supabase.from("commissions").update(c).eq("id",c.id);
+    else await supabase.from("commissions").insert(c);
+    await loadAll();
+  };
+  const deleteCommission = async (id) => { await supabase.from("commissions").delete().eq("id",id); await loadAll(); };
   const convertLead=async(lead)=>{
     const p={ name:lead.name,sport:lead.sport||"Soccer",nationality:lead.nationality,age:lead.age,position:lead.position,foot:"Right",height:lead.height,weight:lead.weight,status:"Prospect",agent:agentNames[0]||"",phone:lead.phone,email:lead.email,instagram:lead.instagram,videoUrl:lead.video_url,photoUrl:null,gpa:lead.gpa,satScore:lead.sat_score,englishLevel:lead.english_level,highSchool:lead.high_school,graduationYear:lead.graduation_year,major:lead.major,toeflScore:lead.toefl_score,university:"",state:"",scholarshipPct:lead.scholarship_pct||0,startDate:"",contractEnd:"",notes:lead.notes||"",totalFee:2700,payment1Amount:900,payment2Amount:1800,budget:lead.budget,fafsa:lead.fafsa||false,sportData:{} };
     await addPlayer(p);
@@ -1127,7 +1452,7 @@ export default function App() {
   const agentStats=agentNames.map(name=>({ name,agent:agents.find(a=>a.name===name),total:players.reduce((s,p)=>s+(p.payment1?.paid&&p.payment1?.paidBy===name?(p.payment1Amount||900):0)+(p.payment2?.paid&&p.payment2?.paidBy===name?(p.payment2Amount||1800):0),0),p1:players.filter(p=>p.payment1?.paid&&p.payment1?.paidBy===name).length,p2:players.filter(p=>p.payment2?.paid&&p.payment2?.paidBy===name).length,count:players.filter(p=>p.agent===name).length }));
   const allOffers=players.flatMap(p=>(p.offers||[]).map(o=>({...o,playerName:p.name,playerId:p.id})));
   const go=(n)=>{ setNav(n); setSelected(null); setMenuOpen(false); };
-  const navItems=[{id:"dashboard",l:"Dashboard",icon:I.dash},{id:"players",l:"Jugadores",icon:I.players},{id:"leads",l:"Leads",icon:"🎯"},{id:"offers",l:"Universidades",icon:I.uni},{id:"payments",l:"Pagos",icon:I.fin},{id:"team",l:"Equipo",icon:I.team}];
+  const navItems=[{id:"dashboard",l:"Dashboard",icon:I.dash},{id:"players",l:"Jugadores",icon:I.players},{id:"leads",l:"Leads",icon:"🎯"},{id:"offers",l:"Universidades",icon:I.uni},{id:"payments",l:"Pagos",icon:I.fin},{id:"commissions",l:"Comisiones",icon:"💸"},{id:"team",l:"Equipo",icon:I.team}];
 
   // Greeting for agent link
   const agentObj=currentAgent?agents.find(a=>a.name===currentAgent||a.name.toLowerCase().includes(currentAgent.toLowerCase())):null;
@@ -1135,7 +1460,9 @@ export default function App() {
   // Public player profile — show only the athlete page, no CRM access
   const publicPlayerId = new URLSearchParams(window.location.search).get("player");
   const isLeadForm = new URLSearchParams(window.location.search).get("form");
+  const athleteToken = new URLSearchParams(window.location.search).get("athlete");
   if(isLeadForm) return <LeadForm/>;
+  if(athleteToken) return <AthletePortal token={athleteToken}/>;
   if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
 
   if(loading) return (
@@ -1328,7 +1655,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {nav==="players"&&selected&&<PlayerDetail player={selected} onBack={()=>setSelected(null)} onRefresh={loadAll} agentList={agentNames}/>}
+          {nav==="players"&&selected&&<PlayerDetail player={selected} onBack={()=>setSelected(null)} onRefresh={loadAll} agentList={agentNames} onGenerateToken={generateAthleteToken}/>}
 
           {/* LEADS */}
           {nav==="leads"&&(
@@ -1525,6 +1852,45 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* COMMISSIONS */}
+          {nav==="commissions"&&(
+            <div>
+              <div style={{ marginBottom:20 }}><h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Comisiones</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>Referidos y comisiones por captación</p></div>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20 }}>
+                <Stat label="Total comisiones" value={`${commissions.reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}€`} color="#f59e0b"/>
+                <Stat label="Cobradas" value={`${commissions.filter(c=>c.paid).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}€`} color="#10b981" sub={`${commissions.filter(c=>c.paid).length} pagadas`}/>
+                <Stat label="Pendientes" value={`${commissions.filter(c=>!c.paid).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}€`} color="#ef4444" sub={`${commissions.filter(c=>!c.paid).length} abiertas`}/>
+              </div>
+              {/* Add commission */}
+              <CommissionForm players={players} onSave={saveCommission} onRefresh={loadAll}/>
+              {/* List */}
+              <div style={{ display:"flex",flexDirection:"column",gap:8,marginTop:14 }}>
+                {commissions.length===0&&<div style={{ textAlign:"center",padding:40,color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>💸</div><div>Sin comisiones registradas</div></div>}
+                {commissions.map(c=>{
+                  const p=players.find(x=>x.id===c.player_id);
+                  return (
+                    <div key={c.id} style={{ display:"flex",alignItems:"center",gap:14,background:"#0a0c14",border:`1px solid ${c.paid?"rgba(16,185,129,0.15)":"rgba(245,158,11,0.12)"}`,borderRadius:12,padding:"13px 18px" }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13,fontWeight:600,color:"#f9fafb",marginBottom:3 }}>{p?.name||"Atleta eliminado"}</div>
+                        <div style={{ fontSize:11,color:"#4b5563" }}>Referido por: <span style={{ color:"#818cf8",fontWeight:600 }}>{c.referred_by||"—"}</span> · {c.percentage||10}% de {c.amount||0}€</div>
+                        {c.notes&&<div style={{ fontSize:11,color:"#6b7280",marginTop:2,fontStyle:"italic" }}>{c.notes}</div>}
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:16,fontWeight:800,color:c.paid?"#10b981":"#f59e0b" }}>{(c.amount||0).toLocaleString()}€</div>
+                        <div style={{ fontSize:10,color:c.paid?"#10b981":"#f59e0b",marginTop:2 }}>{c.paid?"✓ Pagada":"Pendiente"}</div>
+                      </div>
+                      <div style={{ display:"flex",flexDirection:"column",gap:5 }}>
+                        {!c.paid&&<button onClick={async()=>{ await saveCommission({...c,paid:true,paid_date:new Date().toISOString().split("T")[0]}); }} style={{ padding:"5px 10px",borderRadius:7,border:"none",background:"rgba(16,185,129,0.15)",color:"#10b981",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>✓ Cobrada</button>}
+                        <button onClick={async()=>{ if(window.confirm("¿Eliminar comisión?")) await deleteCommission(c.id); }} style={{ padding:"5px 10px",borderRadius:7,border:"1px solid rgba(239,68,68,0.15)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>Eliminar</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           </div>{/* end padding div */}
         </div>
       </div>

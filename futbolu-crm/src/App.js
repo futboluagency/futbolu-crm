@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
+import { useAuth, LoginPage, AccessDenied, DEFAULT_PERMISSIONS, ADMIN_EMAIL } from "./Auth";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -400,6 +401,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
   const [publicModal,setPublicModal]=useState(false);
   const [saving,setSaving]=useState(false);
   const [tokenCopied,setTokenCopied]=useState(false);
+  const [generatedLink,setGeneratedLink]=useState(null);
   const [playerDocs,setPlayerDocs]=useState([]);
   const paid=(player.payment1?.paid?(player.payment1Amount||900):0)+(player.payment2?.paid?(player.payment2Amount||1800):0);
   const totalFee=player.totalFee||2700;
@@ -438,11 +440,25 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
         <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
           <button onClick={()=>setPublicModal(true)} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(99,102,241,0.2)",background:"rgba(99,102,241,0.06)",color:"#818cf8",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{I.share} Compartir</button>
           {portalUrl
-            ? <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🏅 {tokenCopied?"¡Copiado!":"Portal atleta"}</button>
-            : <button onClick={async()=>{ const t=await onGenerateToken(player.id); if(t){ navigator.clipboard.writeText(`${window.location.origin}?athlete=${t}`); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }}} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(245,158,11,0.25)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🔑 Crear portal</button>
+            ? <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setGeneratedLink(portalUrl); setTimeout(()=>setTokenCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🏅 {tokenCopied?"¡Copiado!":"Portal atleta"}</button>
+            : <button onClick={async()=>{ const t=await onGenerateToken(player.id); if(t){ const link=`${window.location.origin}?athlete=${t}`; setGeneratedLink(link); try{ navigator.clipboard.writeText(link); }catch(e){} setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }}} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(245,158,11,0.25)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🔑 Crear portal</button>
           }
         </div>
       </div>
+
+      {/* Portal link popup */}
+      {generatedLink&&<div style={{ marginBottom:14,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:12,padding:"14px 16px" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+          <div style={{ fontSize:12,fontWeight:700,color:"#10b981" }}>🔑 Link del portal del atleta</div>
+          <button onClick={()=>setGeneratedLink(null)} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:16 }}>✕</button>
+        </div>
+        <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#f9fafb",wordBreak:"break-all",marginBottom:10 }}>{generatedLink}</div>
+        <div style={{ display:"flex",gap:8 }}>
+          <button onClick={()=>{ navigator.clipboard.writeText(generatedLink); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ flex:1,padding:"8px",borderRadius:8,border:"none",background:tokenCopied?"#10b981":"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{tokenCopied?"✓ Copiado":"📋 Copiar link"}</button>
+          <a href={generatedLink} target="_blank" rel="noreferrer" style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.08)",color:"#10b981",textDecoration:"none",fontSize:12,fontWeight:600,textAlign:"center" }}>👁 Ver portal</a>
+        </div>
+        <div style={{ fontSize:11,color:"#6b7280",marginTop:8 }}>Comparte este link con {player.name}. Solo él puede acceder.</div>
+      </div>}
 
       {/* Hero */}
       <div style={{ background:"#0f1117",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"18px 20px",marginBottom:14 }}>
@@ -788,7 +804,7 @@ const AgentLinkRow = ({ agent, link, IcCopy }) => {
 // ─── PUBLIC LEAD FORM ─────────────────────────────────────────────────────────
 const LeadForm = () => {
   const SPORTS_LIST = ["Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
-  const [form,setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",sport:"Soccer",position:"",height:"",weight:"",gpa:"",sat_score:"",toefl_score:"",english_level:"B2",high_school:"",graduation_year:"",major:"",scholarship_pct:"",budget:"",fafsa:false,video_url:"",instagram:"",notes:"" });
+  const [form,setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",sport:"Soccer",position:"",height:"",weight:"",gpa:"",sat_score:"",toefl_score:"",english_level:"B2",high_school:"",graduation_year:"",major:"",scholarship_pct:"",budget:"",fafsa:false,video_url:"",instagram:"",notes:"",referred_by:"" });
   const [submitting,setSubmitting] = useState(false);
   const [submitted,setSubmitted] = useState(false);
   const [error,setError] = useState("");
@@ -810,6 +826,7 @@ const LeadForm = () => {
         major:form.major, scholarship_pct:parseInt(form.scholarship_pct)||null,
         budget:parseFloat(form.budget)||null, fafsa:form.fafsa,
         video_url:form.video_url, instagram:form.instagram, notes:form.notes,
+        referred_by:form.referred_by||null,
       });
       if(err) throw err;
       setSubmitted(true);
@@ -856,6 +873,7 @@ const LeadForm = () => {
               <div><label style={lbl}>Nationality</label><input style={inp} value={form.nationality} onChange={e=>set("nationality",e.target.value)} placeholder="Colombian, Spanish..."/></div>
               <div><label style={lbl}>Age</label><input style={inp} type="number" value={form.age} onChange={e=>set("age",e.target.value)} placeholder="18"/></div>
               <div><label style={lbl}>Instagram</label><input style={inp} value={form.instagram} onChange={e=>set("instagram",e.target.value)} placeholder="@username"/></div>
+              <div><label style={lbl}>¿Quién te ha referido? (agente)</label><input style={inp} value={form.referred_by} onChange={e=>set("referred_by",e.target.value)} placeholder="Nombre del agente que te contactó"/></div>
             </div>
           </div>
 
@@ -1369,7 +1387,51 @@ const AthletePortal = ({ token }) => {
   );
 };
 
+const PermissionsModal = ({ agentProfile, onClose, onSave }) => {
+  const PERM_LABELS = {
+    view_dashboard:"Ver Dashboard",view_players:"Ver Jugadores",view_leads:"Ver Leads",
+    view_offers:"Ver Universidades",view_payments:"Ver Pagos y Revenue",
+    view_commissions:"Ver Comisiones",view_team:"Ver Equipo",
+    view_all_agents:"Ver todos los agentes",create_players:"Crear jugadores",delete_players:"Eliminar jugadores",manage_offers:"Gestionar ofertas",
+  };
+  const current = typeof agentProfile.permissions==="string" ? JSON.parse(agentProfile.permissions) : (agentProfile.permissions||DEFAULT_PERMISSIONS);
+  const [perms,setPerms] = useState({...DEFAULT_PERMISSIONS,...current});
+  const [saving,setSaving] = useState(false);
+  const toggle = (k) => setPerms(p=>({...p,[k]:!p[k]}));
+  const save = async () => { setSaving(true); await onSave(agentProfile.id,perms); setSaving(false); onClose(); };
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16 }}>
+      <div style={{ background:"#080a10",border:"1px solid rgba(255,255,255,0.08)",borderRadius:18,width:"100%",maxWidth:420,maxHeight:"90vh",overflowY:"auto",padding:24 }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20 }}>
+          <div>
+            <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:"#f9fafb" }}>Permisos de {agentProfile.name}</h3>
+            <div style={{ fontSize:11,color:"#4b5563",marginTop:3 }}>{agentProfile.email}</div>
+          </div>
+          <button onClick={onClose} style={{ background:"rgba(255,255,255,0.06)",border:"none",color:"#9ca3af",cursor:"pointer",width:28,height:28,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center" }}>{I.x}</button>
+        </div>
+        <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
+          {Object.entries(PERM_LABELS).map(([k,label])=>(
+            <div key={k} onClick={()=>toggle(k)} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:perms[k]?"rgba(99,102,241,0.08)":"rgba(255,255,255,0.02)",border:`1px solid ${perms[k]?"rgba(99,102,241,0.2)":"rgba(255,255,255,0.05)"}`,borderRadius:9,cursor:"pointer" }}>
+              <span style={{ fontSize:13,color:perms[k]?"#e5e7eb":"#6b7280",fontWeight:perms[k]?500:400 }}>{label}</span>
+              <div style={{ width:36,height:20,borderRadius:20,background:perms[k]?"#6366f1":"rgba(255,255,255,0.08)",position:"relative",transition:"background .2s",flexShrink:0 }}>
+                <div style={{ position:"absolute",top:2,left:perms[k]?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s" }}/>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex",gap:10 }}>
+          <button onClick={onClose} style={{ flex:1,padding:"10px",borderRadius:9,border:"1px solid rgba(255,255,255,0.08)",background:"none",color:"#9ca3af",cursor:"pointer",fontFamily:"inherit" }}>Cancelar</button>
+          <button onClick={save} disabled={saving} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontWeight:600,fontFamily:"inherit",opacity:saving?0.7:1 }}>{saving?"Guardando...":"Guardar permisos"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
+  const { user, profile, loading:authLoading, isAdmin, signOut, can, updatePermissions } = useAuth();
+  const [agentProfiles, setAgentProfiles] = useState([]);
+  const [permModal, setPermModal] = useState(null);
   const [players,setPlayers]=useState([]);
   const [agents,setAgents]=useState([]);
   const [leads,setLeads]=useState([]);
@@ -1399,16 +1461,17 @@ export default function App() {
   const loadAll=useCallback(async()=>{
     setLoading(true);
     try {
-      const [{data:rows},{data:allOffers},{data:allTimeline},{data:agentRows},{data:leadRows},{data:commRows}]=await Promise.all([
+      const [{data:rows},{data:allOffers},{data:allTimeline},{data:agentRows},{data:leadRows},{data:commRows},{data:profileRows}]=await Promise.all([
         supabase.from("players").select("*").order("created_at",{ascending:false}),
         supabase.from("offers").select("*"),
         supabase.from("timeline").select("*").order("date",{ascending:true}),
         supabase.from("agents").select("*").order("created_at",{ascending:true}),
         supabase.from("leads").select("*").order("created_at",{ascending:false}),
         supabase.from("commissions").select("*").order("created_at",{ascending:false}),
+        supabase.from("agent_profiles").select("*").order("created_at",{ascending:true}),
       ]);
       const mapped=(rows||[]).map(r=>dbToPlayer(r,(allOffers||[]).filter(o=>o.player_id===r.id),(allTimeline||[]).filter(t=>t.player_id===r.id)));
-      setPlayers(mapped); setAgents(agentRows||[]); setLeads(leadRows||[]); setCommissions(commRows||[]);
+      setPlayers(mapped); setAgents(agentRows||[]); setLeads(leadRows||[]); setCommissions(commRows||[]); setAgentProfiles(profileRows||[]);
       setSelected(prev=>prev?(mapped.find(p=>p.id===prev.id)||prev):null);
       // Set current agent name from slug
       if(agentRows&&agentRows.length>0){
@@ -1452,7 +1515,8 @@ export default function App() {
   const agentStats=agentNames.map(name=>({ name,agent:agents.find(a=>a.name===name),total:players.reduce((s,p)=>s+(p.payment1?.paid&&p.payment1?.paidBy===name?(p.payment1Amount||900):0)+(p.payment2?.paid&&p.payment2?.paidBy===name?(p.payment2Amount||1800):0),0),p1:players.filter(p=>p.payment1?.paid&&p.payment1?.paidBy===name).length,p2:players.filter(p=>p.payment2?.paid&&p.payment2?.paidBy===name).length,count:players.filter(p=>p.agent===name).length }));
   const allOffers=players.flatMap(p=>(p.offers||[]).map(o=>({...o,playerName:p.name,playerId:p.id})));
   const go=(n)=>{ setNav(n); setSelected(null); setMenuOpen(false); };
-  const navItems=[{id:"dashboard",l:"Dashboard",icon:I.dash},{id:"players",l:"Jugadores",icon:I.players},{id:"leads",l:"Leads",icon:"🎯"},{id:"offers",l:"Universidades",icon:I.uni},{id:"payments",l:"Pagos",icon:I.fin},{id:"commissions",l:"Comisiones",icon:"💸"},{id:"team",l:"Equipo",icon:I.team}];
+  const allNavItems=[{id:"dashboard",l:"Dashboard",icon:I.dash,perm:"view_dashboard"},{id:"players",l:"Jugadores",icon:I.players,perm:"view_players"},{id:"leads",l:"Leads",icon:"🎯",perm:"view_leads"},{id:"offers",l:"Universidades",icon:I.uni,perm:"view_offers"},{id:"payments",l:"Pagos",icon:I.fin,perm:"view_payments"},{id:"commissions",l:"Comisiones",icon:"💸",perm:"view_commissions"},{id:"team",l:"Equipo",icon:I.team,perm:"view_team"}];
+  const navItems = allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link
   const agentObj=currentAgent?agents.find(a=>a.name===currentAgent||a.name.toLowerCase().includes(currentAgent.toLowerCase())):null;
@@ -1464,6 +1528,15 @@ export default function App() {
   if(isLeadForm) return <LeadForm/>;
   if(athleteToken) return <AthletePortal token={athleteToken}/>;
   if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
+
+  // Auth check — show login if not authenticated
+  if(authLoading) return (
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14 }}>
+      <img src="/logo.png" alt="FUA" onError={e=>e.target.style.display="none"} style={{ height:52,objectFit:"contain" }}/>
+      <div style={{ fontSize:13,color:"#374151" }}>Cargando...</div>
+    </div>
+  );
+  if(!user) return <LoginPage/>;
 
   if(loading) return (
     <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#050709",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14 }}>
@@ -1532,13 +1605,24 @@ export default function App() {
 
           {/* Agents bottom */}
           <div style={{ padding:"12px 14px 16px",borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-            {agentStats.slice(0,4).map(s=>(
+            {isAdmin&&agentStats.slice(0,4).map(s=>(
               <div key={s.name} onClick={()=>go("team")} style={{ display:"flex",gap:8,alignItems:"center",padding:"6px 4px",cursor:"pointer",borderRadius:7 }}>
                 <Avatar name={s.name} size={22} photoUrl={s.agent?.photo_url}/>
                 <div style={{ flex:1,minWidth:0 }}><div style={{ fontSize:11,fontWeight:500,color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{s.name.split(" ")[0]}</div></div>
                 <div style={{ fontSize:10,color:"#4b5563",fontWeight:500 }}>{s.total}€</div>
               </div>
             ))}
+            {/* Current user */}
+            <div style={{ marginTop:8,padding:"8px 10px",background:"rgba(255,255,255,0.03)",borderRadius:9,border:"1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0 }}>{(user?.email||"?")[0].toUpperCase()}</div>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:11,fontWeight:600,color:"#e5e7eb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{profile?.name||user?.email?.split("@")[0]}</div>
+                  <div style={{ fontSize:9,color:"#4b5563" }}>{isAdmin?"Admin":"Agente"}</div>
+                </div>
+                <button onClick={signOut} style={{ background:"none",border:"none",color:"#4b5563",cursor:"pointer",fontSize:11,fontFamily:"inherit",padding:"2px 6px",borderRadius:5 }} title="Cerrar sesión">↩</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1696,6 +1780,7 @@ export default function App() {
                       <div style={{ display:"flex",gap:12,flexWrap:"wrap",fontSize:11,color:"#4b5563" }}>
                         {lead.email&&<span>📧 {lead.email}</span>}
                         {lead.phone&&<span>📱 {lead.phone}</span>}
+                        {lead.referred_by&&<span>👤 Ref: <strong style={{ color:"#818cf8" }}>{lead.referred_by}</strong></span>}
                         <span>📅 {new Date(lead.created_at).toLocaleDateString("es-ES")}</span>
                       </div>
                     </div>
@@ -1806,8 +1891,30 @@ export default function App() {
             <div>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10 }}>
                 <div><h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Equipo</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>FUTBOLUAGENCY · {agents.length} miembros</p></div>
-                <button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo agente</button>
+                {isAdmin&&<button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo agente</button>}
               </div>
+
+              {/* CRM Access management — admin only */}
+              {isAdmin&&agentProfiles.filter(p=>p.role!=="admin").length>0&&(
+                <Card style={{ padding:"18px 20px",marginBottom:16,border:"1px solid rgba(245,158,11,0.12)" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>🔐 Accesos al CRM</div>
+                  <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                    {agentProfiles.filter(p=>p.role!=="admin").map(ap=>(
+                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,border:"1px solid rgba(255,255,255,0.05)" }}>
+                        <div style={{ width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f188,#6366f1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff" }}>{(ap.name||ap.email||"?")[0].toUpperCase()}</div>
+                        <div style={{ flex:1,minWidth:0 }}>
+                          <div style={{ fontSize:13,fontWeight:600,color:"#f9fafb" }}>{ap.name||ap.email}</div>
+                          <div style={{ fontSize:11,color:"#4b5563" }}>{ap.email} · {ap.role}</div>
+                        </div>
+                        <div style={{ display:"flex",gap:5 }}>
+                          <button onClick={()=>setPermModal(ap)} style={{ padding:"5px 10px",borderRadius:7,border:"1px solid rgba(99,102,241,0.25)",background:"rgba(99,102,241,0.08)",color:"#818cf8",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>⚙️ Permisos</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop:10,fontSize:11,color:"#4b5563" }}>Los agentes acceden con su Gmail en: <span style={{ color:"#818cf8" }}>{window.location.origin}</span></div>
+                </Card>
+              )}
 
               {/* Agent links section */}
               {agents.length>0&&<Card style={{ padding:"18px 20px",marginBottom:16,border:"1px solid rgba(99,102,241,0.1)" }}>
@@ -1898,6 +2005,7 @@ export default function App() {
       {addModal&&<PlayerModal onClose={()=>setAddModal(false)} onSave={async(p)=>{ await addPlayer(p); setAddModal(false); }} agentList={agentNames}/>}
       {agentModal&&<AgentModal initial={agentModal==="new"?null:agentModal} onClose={()=>setAgentModal(null)} onSave={saveAgent}/>}
       {selectedLead&&<LeadDetail lead={selectedLead} onClose={()=>setSelectedLead(null)} onConvert={convertLead} onDelete={deleteLead}/>}
+      {permModal&&<PermissionsModal agentProfile={permModal} onClose={()=>setPermModal(null)} onSave={async(id,perms)=>{ await updatePermissions(id,perms); await loadAll(); }}/>}
     </div>
   );
 }

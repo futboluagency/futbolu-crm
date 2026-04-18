@@ -2,6 +2,9 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 import { useAuth, LoginPage, AccessDenied, DEFAULT_PERMISSIONS, ADMIN_EMAIL, CEO_EMAILS } from "./Auth";
 import { AdmissionChecklist } from "./Admission";
+import { CoachesDB } from "./Coaches";
+import { Analytics } from "./Analytics";
+import { ALL_UNIVERSITIES, getAllUniversities } from "./Universities";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -345,18 +348,19 @@ const PlayerModal = ({ initial, onClose, onSave, agentList }) => {
 const OfferModal = ({ onClose, onAdd }) => {
   const [f,setF]=useState({ university:"",state:"",division:"NCAA D1",scholarshipPct:"",amount:"",season:"Fall 27",status:"Interesada",notes:"",logoUrl:"" });
   const [search,setSearch]=useState(""); const [saving,setSaving]=useState(false);
-  const filtered=search.length>1?NCAA_UNIVERSITIES.filter(u=>u.name.toLowerCase().includes(search.toLowerCase())||u.state.toLowerCase().includes(search.toLowerCase())).slice(0,8):[];
+  const allUnis = getAllUniversities();
+  const filtered=search.length>1?allUnis.filter(u=>u.name.toLowerCase().includes(search.toLowerCase())).slice(0,10):[];
   return (
     <Modal title="Nueva oferta universitaria" onClose={onClose} maxWidth={480}>
       <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
         <div><label style={lbl}>Buscar universidad</label>
-          <input style={inp} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Escribe para buscar... SMU, UCLA, Stanford"/>
+          <input style={inp} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Escribe para buscar... Alabama, Florida, Stanford..."/>
           {filtered.length>0&&<div style={{ background:"#0f1117",border:"1px solid rgba(255,255,255,0.07)",borderRadius:9,marginTop:4,overflow:"hidden",maxHeight:200,overflowY:"auto" }}>
-            {filtered.map(u=><div key={u.name} onClick={()=>{ setF(p=>({...p,university:u.name,state:u.state,division:u.div})); setSearch(""); }} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
-              <UniLogo name={u.name} size={24}/><div><div style={{ fontSize:13,fontWeight:600,color:"#f9fafb" }}>{u.name}</div><div style={{ fontSize:10,color:"#6b7280" }}>{u.state} · {u.div}</div></div>
+            {filtered.map(u=><div key={u.name+u.division} onClick={()=>{ setF(p=>({...p,university:u.name,division:u.division})); setSearch(""); }} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
+              <UniLogo name={u.name} size={24}/><div><div style={{ fontSize:13,fontWeight:600,color:"#f9fafb" }}>{u.name}</div><div style={{ fontSize:10,color:"#6b7280" }}>{u.division}</div></div>
             </div>)}
           </div>}
-          {f.university&&!search&&<div style={{ marginTop:8,display:"flex",alignItems:"center",gap:8 }}><UniLogo name={f.university} logoUrl={f.logoUrl} size={24}/><span style={{ fontSize:13,fontWeight:600,color:"#10b981" }}>✓ {f.university}</span><button onClick={()=>setF(p=>({...p,university:"",state:"",division:"NCAA D1"}))} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>cambiar</button></div>}
+          {f.university&&!search&&<div style={{ marginTop:8,display:"flex",alignItems:"center",gap:8 }}><UniLogo name={f.university} logoUrl={f.logoUrl} size={24}/><span style={{ fontSize:13,fontWeight:600,color:"#10b981" }}>✓ {f.university}</span><button onClick={()=>setF(p=>({...p,university:"",division:"NCAA D1"}))} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>cambiar</button></div>}
         </div>
         {!f.university&&<div><label style={lbl}>O escribe manualmente</label><input style={inp} value={f.university} onChange={e=>setF(p=>({...p,university:e.target.value}))} placeholder="Nombre universidad"/></div>}
         <G2>
@@ -1578,7 +1582,17 @@ export default function App() {
   const agentStats=agentNames.map(name=>({ name,agent:agents.find(a=>a.name===name),total:visiblePlayers.reduce((s,p)=>s+(p.payment1?.paid&&p.payment1?.paidBy===name?(p.payment1Amount||900):0)+(p.payment2?.paid&&p.payment2?.paidBy===name?(p.payment2Amount||1800):0),0),p1:visiblePlayers.filter(p=>p.payment1?.paid&&p.payment1?.paidBy===name).length,p2:visiblePlayers.filter(p=>p.payment2?.paid&&p.payment2?.paidBy===name).length,count:visiblePlayers.filter(p=>p.agent===name).length }));
   const allOffers=visiblePlayers.flatMap(p=>(p.offers||[]).map(o=>({...o,playerName:p.name,playerId:p.id})));
   const go=(n)=>{ setNav(n); setSelected(null); setMenuOpen(false); };
-  const allNavItems=[{id:"dashboard",l:"Dashboard",icon:I.dash,perm:"view_dashboard"},{id:"players",l:"Jugadores",icon:I.players,perm:"view_players"},{id:"leads",l:"Leads",icon:"🎯",perm:"view_leads"},{id:"offers",l:"Universidades",icon:I.uni,perm:"view_offers"},{id:"payments",l:"Pagos",icon:I.fin,perm:"view_payments"},{id:"earnings",l:"Mis Ganancias",icon:"💸",perm:"view_commissions"},{id:"team",l:"Equipo",icon:I.team,perm:"view_team"}];
+  const allNavItems=[
+    {id:"dashboard",l:"Dashboard",icon:I.dash,perm:"view_dashboard"},
+    {id:"players",l:"Jugadores",icon:I.players,perm:"view_players"},
+    {id:"leads",l:"Leads",icon:"🎯",perm:"view_leads"},
+    {id:"offers",l:"Universidades",icon:I.uni,perm:"view_offers"},
+    {id:"coaches",l:"Entrenadores",icon:"🏈",perm:"view_offers"},
+    {id:"payments",l:"Pagos",icon:I.fin,perm:"view_payments"},
+    {id:"earnings",l:"Mis Ganancias",icon:"💸",perm:"view_commissions"},
+    {id:"analytics",l:"Analíticas",icon:"📊",perm:"view_payments"},
+    {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
+  ];
   const navItems = allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link
@@ -2077,6 +2091,12 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* COACHES */}
+          {nav==="coaches"&&<CoachesDB players={visiblePlayers} isAdmin={isAdmin}/>}
+
+          {/* ANALYTICS */}
+          {nav==="analytics"&&<Analytics players={visiblePlayers} leads={visibleLeads} commissions={commissions} agents={agents} agentProfiles={agentProfiles}/>}
 
           </div>{/* end padding div */}
         </div>

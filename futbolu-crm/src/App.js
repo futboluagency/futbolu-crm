@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
-import { useAuth, LoginPage, AccessDenied, DEFAULT_PERMISSIONS, ADMIN_EMAIL } from "./Auth";
+import { useAuth, LoginPage, AccessDenied, DEFAULT_PERMISSIONS, ADMIN_EMAIL, CEO_EMAILS } from "./Auth";
+import { AdmissionChecklist } from "./Admission";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -422,7 +423,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
   const updateOfferStatus=async(id,status)=>{ await supabase.from("offers").update({status}).eq("id",id); await onRefresh(); };
   const removeOffer=async(id)=>{ await supabase.from("offers").delete().eq("id",id); await onRefresh(); };
 
-  const tabs=[{id:"profile",l:"Perfil"},{id:"sports",l:"Deportivo"},{id:"academic",l:"Académico"},{id:"offers",l:`Ofertas (${player.offers?.length||0})`},{id:"payments",l:"Pagos"},{id:"documents",l:`Docs (${playerDocs.length}/${REQUIRED_DOCS.length})`},{id:"timeline",l:"Historial"}];
+  const tabs=[{id:"profile",l:"Perfil"},{id:"sports",l:"Deportivo"},{id:"academic",l:"Académico"},{id:"offers",l:`Ofertas (${player.offers?.length||0})`},{id:"payments",l:"Pagos"},{id:"admission",l:"Proceso"},{id:"documents",l:`Docs (${playerDocs.length}/${REQUIRED_DOCS.length})`},{id:"timeline",l:"Historial"}];
   const tlC={contact:"#6366f1",contract:"#8b5cf6",milestone:"#10b981",achievement:"#f59e0b",payment:"#22c55e"};
   const tlE={contact:"👋",contract:"✍️",milestone:"🎯",achievement:"🏆",payment:"💰"};
 
@@ -586,6 +587,8 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
         {(player.timeline||[]).map((evt,i)=>{ const c=tlC[evt.type]||"#6b7280"; return <div key={i} style={{ position:"relative",marginBottom:14 }}><div style={{ position:"absolute",left:-19,top:9,width:10,height:10,borderRadius:"50%",background:c,border:`2px solid #080a10` }}/><div style={{ background:"#0f1117",border:"1px solid rgba(255,255,255,0.05)",borderRadius:10,padding:"10px 14px" }}><div style={{ fontSize:10,color:"#4b5563",marginBottom:3 }}>{evt.date}</div><div style={{ fontSize:13,color:"#e5e7eb",fontWeight:500 }}>{tlE[evt.type]} {evt.event}</div></div></div>; })}
         {(!player.timeline||player.timeline.length===0)&&<div style={{ textAlign:"center",padding:40,color:"#4b5563" }}>Sin eventos</div>}
       </div>}
+
+      {tab==="admission"&&<AdmissionChecklist playerId={player.id} isAdmin={true}/>}
 
       {tab==="documents"&&<div>
         <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:12,fontSize:12,color:"#818cf8" }}>
@@ -1295,7 +1298,7 @@ const AthletePortal = ({ token }) => {
 
         {/* Tabs */}
         <div style={{ display:"flex",gap:2,marginBottom:14,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:3 }}>
-          {[{id:"profile",l:"My Profile"},{id:"offers",l:`Offers (${offers.filter(o=>o.status!=="Declined").length})`},{id:"documents",l:`Documents (${docsUploaded}/${docsTotal})`}].map(t=>(
+          {[{id:"profile",l:"My Profile"},{id:"offers",l:`Offers (${offers.filter(o=>o.status!=="Declined").length})`},{id:"process",l:"My Process"},{id:"documents",l:`Documents (${docsUploaded}/${docsTotal})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{ flex:1,padding:"8px 10px",borderRadius:9,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t.id?"rgba(99,102,241,0.18)":"none",color:tab===t.id?"#a5b4fc":"#6b7280",fontFamily:"inherit" }}>{t.l}</button>
           ))}
         </div>
@@ -1350,6 +1353,14 @@ const AthletePortal = ({ token }) => {
               </div>
             </div>
           ))}
+        </div>}
+
+        {/* PROCESS TAB */}
+        {tab==="process"&&<div>
+          <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:13,color:"#818cf8" }}>
+            🎯 Track your admission process. Your agent will update each step as you progress.
+          </div>
+          <AdmissionChecklist playerId={player.id} isAdmin={false}/>
         </div>}
 
         {/* DOCUMENTS TAB */}
@@ -1413,7 +1424,7 @@ const EarningsForm = ({ players, agentProfiles, onSave }) => {
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Reclutador</label>
           <select style={{ ...inp2,width:"100%",cursor:"pointer" }} value={f.referred_by} onChange={e=>setF(x=>({...x,referred_by:e.target.value}))}>
             <option value="">Seleccionar reclutador...</option>
-            {agentProfiles.filter(p=>p.role!=="admin").map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
+            {agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
           </select>
         </div>
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% Comisión</label>
@@ -1670,7 +1681,7 @@ export default function App() {
                 <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0 }}>{(user?.email||"?")[0].toUpperCase()}</div>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:11,fontWeight:600,color:"#e5e7eb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{profile?.name||user?.email?.split("@")[0]}</div>
-                  <div style={{ fontSize:9,color:"#4b5563" }}>{isAdmin?"Admin":"Agente"}</div>
+                  <div style={{ fontSize:9,color:isAdmin?"#f59e0b":"#6b7280" }}>{isAdmin?"CEO":"Reclutador"}</div>
                 </div>
                 <button onClick={signOut} style={{ background:"none",border:"none",color:"#4b5563",cursor:"pointer",fontSize:11,fontFamily:"inherit",padding:"2px 6px",borderRadius:5 }} title="Cerrar sesión">↩</button>
               </div>
@@ -1942,16 +1953,16 @@ export default function App() {
           {nav==="team"&&(
             <div>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10 }}>
-                <div><h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Equipo</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>FUTBOLUAGENCY · {agents.length} miembros</p></div>
-                {isAdmin&&<button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo agente</button>}
+                <div><h1 style={{ fontSize:22,fontWeight:700,color:"#f9fafb",letterSpacing:-0.3 }}>Equipo</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>CEOs y Reclutadores · {agents.length} miembros</p></div>
+                {isAdmin&&<button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo miembro</button>}
               </div>
 
               {/* CRM Access management — admin only */}
-              {isAdmin&&agentProfiles.filter(p=>p.role!=="admin").length>0&&(
+              {isAdmin&&agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").length>0&&(
                 <Card style={{ padding:"18px 20px",marginBottom:16,border:"1px solid rgba(245,158,11,0.12)" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>🔐 Accesos al CRM</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>🔐 Accesos de Reclutadores</div>
                   <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                    {agentProfiles.filter(p=>p.role!=="admin").map(ap=>(
+                    {agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(ap=>(
                       <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,border:"1px solid rgba(255,255,255,0.05)" }}>
                         <div style={{ width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f188,#6366f1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff" }}>{(ap.name||ap.email||"?")[0].toUpperCase()}</div>
                         <div style={{ flex:1,minWidth:0 }}>
@@ -2007,7 +2018,7 @@ export default function App() {
               {/* Summary cards */}
               <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20 }}>
                 {isAdmin
-                  ? agentProfiles.filter(p=>p.role!=="admin").map(ap=>{
+                  ? agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(ap=>{
                       const apEarnings = commissions.filter(c=>c.referred_by===ap.name||c.referred_by===ap.email);
                       const total = apEarnings.reduce((s,c)=>s+(c.amount||0),0);
                       const paid = apEarnings.filter(c=>c.paid).reduce((s,c)=>s+(c.amount||0),0);

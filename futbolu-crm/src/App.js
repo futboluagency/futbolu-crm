@@ -2271,7 +2271,7 @@ export default function App() {
           {nav==="analytics"&&<Analytics players={visiblePlayers} leads={visibleLeads} commissions={commissions} agents={agents} agentProfiles={agentProfiles}/>}
 
           {/* CALENDAR */}
-          {nav==="calendar"&&<CalendarView profile={profile} isAdmin={isAdmin}/>}
+          {nav==="calendar"&&<CalendarView profile={profile} isAdmin={isAdmin} agentProfiles={agentProfiles} players={visiblePlayers} leads={visibleLeads}/>}
 
           </div>{/* end padding div */}
         </div>

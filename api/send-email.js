@@ -1,72 +1,105 @@
 const nodemailer = require("nodemailer");
 
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "futboluagency@gmail.com",
+    pass: "yauc hasu jzae mieu",
+  },
+});
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+module.exports = async (req, res) => {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  const { type, to, subject, body, athleteName, profileUrl, coachName, eventTitle, eventDate, eventTime, senderName } = req.body;
 
   try {
-    const { emails, subject, message, athleteName, profileLink } = req.body;
+    let htmlContent = "";
+    let emailSubject = subject || "FUTBOLUAGENCY";
 
-    if (!emails || emails.length === 0) {
-      return res.status(400).json({ error: "No emails provided" });
+    if (type === "athlete_profile") {
+      emailSubject = `Athlete Profile - ${athleteName} | FUTBOLUAGENCY`;
+      htmlContent = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border:1px solid #e8e3db;border-radius:12px;overflow:hidden">
+          <div style="background:#1a1a2e;padding:24px;text-align:center">
+            <h1 style="color:#fff;margin:0;font-size:20px">FUTBOLUAGENCY</h1>
+            <p style="color:#9ca3af;margin:8px 0 0;font-size:13px">Student-Athlete Recruitment</p>
+          </div>
+          <div style="padding:28px">
+            <p style="color:#374151;font-size:14px">Dear ${coachName||"Coach"},</p>
+            <p style="color:#374151;font-size:14px;line-height:1.6">We would like to introduce you to <strong>${athleteName}</strong>, a talented student-athlete currently seeking scholarship opportunities.</p>
+            <div style="text-align:center;margin:24px 0">
+              <a href="${profileUrl}" style="background:#6366f1;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">View Full Profile</a>
+            </div>
+            ${body ? `<p style="color:#374151;font-size:14px;line-height:1.6;white-space:pre-line">${body}</p>` : ""}
+            <hr style="border:none;border-top:1px solid #f0ebe3;margin:24px 0"/>
+            <p style="color:#9ca3af;font-size:12px">FUTBOLUAGENCY | futboluagency@gmail.com | +34 603 331 990</p>
+          </div>
+        </div>`;
+    } else if (type === "calendar_invite") {
+      emailSubject = `Reunion agendada: ${eventTitle} - ${eventDate}`;
+      htmlContent = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border:1px solid #e8e3db;border-radius:12px;overflow:hidden">
+          <div style="background:#1a1a2e;padding:24px;text-align:center">
+            <h1 style="color:#fff;margin:0;font-size:20px">FUTBOLUAGENCY</h1>
+          </div>
+          <div style="padding:28px">
+            <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 16px">Tienes una reunion agendada</h2>
+            <div style="background:#f9f7f4;border:1px solid #e8e3db;border-radius:10px;padding:20px;margin-bottom:20px">
+              <p style="margin:0 0 8px;color:#1a1a2e;font-size:16px;font-weight:700">${eventTitle}</p>
+              <p style="margin:0 0 6px;color:#6b7280;font-size:14px">Fecha: <strong style="color:#1a1a2e">${eventDate}</strong></p>
+              ${eventTime ? `<p style="margin:0 0 6px;color:#6b7280;font-size:14px">Hora: <strong style="color:#1a1a2e">${eventTime}</strong></p>` : ""}
+              ${senderName ? `<p style="margin:0;color:#6b7280;font-size:14px">Convocado por: <strong style="color:#1a1a2e">${senderName}</strong></p>` : ""}
+            </div>
+            ${body ? `<p style="color:#374151;font-size:14px;line-height:1.6">${body}</p>` : ""}
+            <hr style="border:none;border-top:1px solid #f0ebe3;margin:24px 0"/>
+            <p style="color:#9ca3af;font-size:12px">FUTBOLUAGENCY | futboluagency@gmail.com | +34 603 331 990</p>
+          </div>
+        </div>`;
+    } else if (type === "lead_meeting") {
+      emailSubject = `Reunion con lead: ${eventTitle} - ${eventDate}`;
+      htmlContent = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border:1px solid #e8e3db;border-radius:12px;overflow:hidden">
+          <div style="background:#1a1a2e;padding:24px;text-align:center">
+            <h1 style="color:#fff;margin:0;font-size:20px">FUTBOLUAGENCY</h1>
+          </div>
+          <div style="padding:28px">
+            <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 8px">Reunion con lead agendada</h2>
+            <div style="background:#f9f7f4;border:1px solid #e8e3db;border-radius:10px;padding:20px;margin:16px 0">
+              <p style="margin:0 0 8px;color:#1a1a2e;font-size:16px;font-weight:700">${eventTitle}</p>
+              <p style="margin:0 0 6px;color:#6b7280;font-size:14px">Fecha: <strong style="color:#1a1a2e">${eventDate}</strong></p>
+              ${eventTime ? `<p style="margin:0 0 6px;color:#6b7280;font-size:14px">Hora: <strong style="color:#1a1a2e">${eventTime}</strong></p>` : ""}
+            </div>
+            ${body ? `<p style="color:#374151;font-size:14px;line-height:1.6">${body}</p>` : ""}
+            <hr style="border:none;border-top:1px solid #f0ebe3;margin:24px 0"/>
+            <p style="color:#9ca3af;font-size:12px">FUTBOLUAGENCY | futboluagency@gmail.com | +34 603 331 990</p>
+          </div>
+        </div>`;
+    } else {
+      // Generic email
+      htmlContent = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border:1px solid #e8e3db;border-radius:12px;overflow:hidden">
+          <div style="background:#1a1a2e;padding:24px;text-align:center">
+            <h1 style="color:#fff;margin:0;font-size:20px">FUTBOLUAGENCY</h1>
+          </div>
+          <div style="padding:28px">
+            <p style="color:#374151;font-size:14px;line-height:1.6;white-space:pre-line">${body||""}</p>
+            <hr style="border:none;border-top:1px solid #f0ebe3;margin:24px 0"/>
+            <p style="color:#9ca3af;font-size:12px">FUTBOLUAGENCY | futboluagency@gmail.com | +34 603 331 990</p>
+          </div>
+        </div>`;
     }
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "futboluagency@gmail.com",
-        pass: "yujgisupzndsmhuj",
-      },
-    });
-
-    const htmlBody = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;">
-<div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-  <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:30px;text-align:center;">
-    <h1 style="color:white;margin:0;font-size:24px;letter-spacing:2px;">FUTBOLUAGENCY</h1>
-    <p style="color:#9ca3af;margin:8px 0 0;font-size:13px;">Athlete Recruitment Specialists</p>
-  </div>
-  <div style="padding:32px;">
-    <p style="color:#374151;font-size:15px;line-height:1.7;white-space:pre-line;">${message}</p>
-    <div style="text-align:center;margin:32px 0;">
-      <a href="${profileLink}" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:bold;">
-        View Full Athlete Profile →
-      </a>
-    </div>
-  </div>
-  <div style="background:#f9fafb;padding:24px;border-top:1px solid #e5e7eb;text-align:center;">
-    <p style="color:#6b7280;font-size:13px;margin:0;">
-      <strong>Moha</strong> — CEO, FUTBOLUAGENCY<br>
-      📧 futboluagency@gmail.com &nbsp;|&nbsp; 📱 WhatsApp: +34 603 331 990
-    </p>
-  </div>
-</div>
-</body>
-</html>`;
 
     await transporter.sendMail({
       from: '"FUTBOLUAGENCY" <futboluagency@gmail.com>',
-      bcc: emails.join(","),
-      subject: subject || `Athlete Profile — ${athleteName} | FUTBOLUAGENCY`,
-      html: htmlBody,
+      to: Array.isArray(to) ? to.join(", ") : to,
+      subject: emailSubject,
+      html: htmlContent,
     });
 
-    return res.status(200).json({ success: true, count: emails.length });
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error("Email error:", error);
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
-}
+};

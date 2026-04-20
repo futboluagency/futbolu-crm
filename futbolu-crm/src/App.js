@@ -385,7 +385,18 @@ const AgentModal = ({ initial, onClose, onSave }) => {
   const [form,setForm]=useState(initial||{ name:"",role:"Reclutador",email:"",phone:"",photoUrl:"",region:"global" });
   const [saving,setSaving]=useState(false);
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
-  const save=async()=>{ if(!form.name.trim()) return; setSaving(true); await onSave(form); setSaving(false); onClose(); };
+  const save=async()=>{ 
+    if(!form.name.trim()) return; 
+    setSaving(true); 
+    try { 
+      await onSave(form); 
+      onClose(); 
+    } catch(e) { 
+      console.error(e); 
+      alert("Error al guardar: " + e.message); 
+    }
+    setSaving(false); 
+  };
   return (
     <Modal title={initial?"Editar miembro":"Nuevo miembro"} onClose={onClose} maxWidth={420}>
       <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
@@ -1734,15 +1745,17 @@ export default function App() {
 
   const addPlayer=async(p)=>{ const {data}=await supabase.from("players").insert(playerToDb(p)).select().single(); if(data) await supabase.from("timeline").insert({player_id:data.id,date:new Date().toISOString().split("T")[0],event:"Perfil creado",type:"contact"}); await loadAll(); };
   const saveAgent=async(a)=>{ 
-    try {
-      if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null,region:a.region||"global"}).eq("id",a.id); 
-      else { const {error} = await supabase.from("agents").insert({name:a.name,role:a.role||"Reclutador",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null,region:a.region||"global"}); if(error) throw error; }
-      // Also update agent_profiles if exists
-      if(a.email) {
-        await supabase.from("agent_profiles").update({name:a.name,region:a.region||"global"}).eq("email",a.email);
-      }
-      await loadAll();
-    } catch(e) { console.error("Error saving agent:",e); alert("Error al guardar. Verifica que el email no esté duplicado."); }
+    if(a.id) {
+      const {error} = await supabase.from("agents").update({name:a.name,role:a.role,email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null,region:a.region||"global"}).eq("id",a.id);
+      if(error) throw error;
+    } else {
+      const {error} = await supabase.from("agents").insert({name:a.name,role:a.role||"Reclutador",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null,region:a.region||"global"});
+      if(error) throw error;
+    }
+    if(a.email) {
+      await supabase.from("agent_profiles").update({name:a.name,region:a.region||"global"}).eq("email",a.email);
+    }
+    await loadAll();
   };
   const deleteAgent=async(id)=>{ await supabase.from("agents").delete().eq("id",id); await loadAll(); };
   const deleteLead=async(id)=>{ await supabase.from("leads").delete().eq("id",id); await loadAll(); };

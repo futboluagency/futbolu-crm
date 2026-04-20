@@ -59,40 +59,70 @@ export const CalendarView = ({ profile, isAdmin, agentProfiles, players, leads }
     try {
       const color = EVENT_TYPES.find(t=>t.id===form.type)?.color||"#6366f1";
       const { id, ...rest } = form;
-      const payload = { ...rest, color, user_id:profile?.user_id||null };
+
+      // Clean empty strings to null for UUID fields
+      const payload = {
+        ...rest,
+        color,
+        user_id: profile?.user_id||null,
+        lead_id: rest.lead_id||null,
+        player_id: rest.player_id||null,
+        assigned_to: rest.assigned_to||null,
+        assigned_name: rest.assigned_name||null,
+      };
 
       if(form.id){
-        await supabase.from("calendar_events").update(payload).eq("id",form.id);
+        const {error} = await supabase.from("calendar_events").update(payload).eq("id",form.id);
+        if(error) throw error;
       } else {
-        await supabase.from("calendar_events").insert(payload);
+        const {error} = await supabase.from("calendar_events").insert(payload);
+        if(error) throw error;
       }
 
-      // Send email notification — non-blocking, don't await
-      if(form.notify_email && form.assigned_name) {
+      // Always send email to CEO
+      const CEO_EMAIL = "futboluagency@gmail.com";
+      const emailData = {
+        eventTitle: form.title,
+        eventDate: form.date,
+        eventTime: form.start_time,
+        body: form.description||"",
+        senderName: profile?.name||"CEO",
+      };
+
+      // Send to CEO always
+      sendEmailNotification("calendar_invite", CEO_EMAIL, emailData);
+
+      // Send to assigned recruiter if different from CEO
+      if(form.assigned_name && form.assigned_name!=="all") {
         const assignedProfile = (agentProfiles||[]).find(p=>p.name===form.assigned_name);
-        if(assignedProfile?.email) {
-          sendEmailNotification("calendar_invite", assignedProfile.email, {
-            eventTitle: form.title, eventDate: form.date, eventTime: form.start_time,
-            body: form.description, senderName: profile?.name||"CEO",
-          }).catch(e=>console.log("Email error:",e));
+        if(assignedProfile?.email && assignedProfile.email!==CEO_EMAIL) {
+          sendEmailNotification("calendar_invite", assignedProfile.email, emailData);
         }
       }
-      if(form.lead_id && form.notify_email) {
+
+      // Send to ALL recruiters if "all" selected
+      if(form.assigned_name==="all") {
+        const recruiters = (agentProfiles||[]).filter(p=>p.role==="recruiter"&&p.email);
+        recruiters.forEach(r => sendEmailNotification("calendar_invite", r.email, emailData));
+      }
+
+      // Send to lead if linked
+      if(form.lead_id) {
         const lead = (leads||[]).find(l=>l.id===form.lead_id);
         if(lead?.email) {
           sendEmailNotification("lead_meeting", lead.email, {
-            eventTitle: form.title, eventDate: form.date, eventTime: form.start_time,
-            body: form.description,
-          }).catch(e=>console.log("Email error:",e));
+            ...emailData,
+            eventTitle: `Reunion contigo: ${form.title}`,
+          });
         }
       }
 
       await loadEvents();
       setSent(true);
-      setTimeout(()=>{ setSent(false); setModal(null); resetForm(); }, 1200);
+      setTimeout(()=>{ setSent(false); setModal(null); resetForm(); }, 1500);
     } catch(e) {
       console.error("Error saving event:", e);
-      alert("Error al guardar. Intenta de nuevo.");
+      alert(`Error al guardar: ${e.message||"intenta de nuevo"}`);
     }
     setSending(false);
   };
@@ -266,9 +296,8 @@ export const CalendarView = ({ profile, isAdmin, agentProfiles, players, leads }
               <div><label style={lbl}>Asistentes externos</label><input style={inp} value={form.attendees||""} onChange={e=>setForm(f=>({...f,attendees:e.target.value}))} placeholder="Familia Garcia, Coach Smith..."/></div>
 
               {/* Email notification */}
-              <div onClick={()=>setForm(f=>({...f,notify_email:!f.notify_email}))} style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 14px", background:form.notify_email?"rgba(99,102,241,0.06)":"#f9f7f4", border:`1px solid ${form.notify_email?"rgba(99,102,241,0.2)":"#e8e3db"}`, borderRadius:9, cursor:"pointer" }}>
-                <div style={{ width:20, height:20, borderRadius:5, background:form.notify_email?"#6366f1":"transparent", border:`2px solid ${form.notify_email?"#6366f1":"#d1d5db"}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, color:"#fff", flexShrink:0 }}>{form.notify_email?"✓":""}</div>
-                <span style={{ fontSize:13, color:form.notify_email?"#6366f1":"#6b7280", fontWeight:form.notify_email?600:400 }}>Enviar notificacion por email al reclutador{form.lead_id?" y al lead":""}</span>
+              <div style={{ padding:"10px 14px", background:"rgba(16,185,129,0.06)", border:"1px solid rgba(16,185,129,0.15)", borderRadius:9, fontSize:12, color:"#10b981", fontWeight:500 }}>
+                Se enviara email automaticamente al CEO, al reclutador asignado{form.lead_id?" y al lead":""}
               </div>
             </div>
 

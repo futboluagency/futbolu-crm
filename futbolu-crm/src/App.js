@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
-import { useAuth, LoginPage, AccessDenied, DEFAULT_PERMISSIONS, ADMIN_EMAIL, CEO_EMAILS } from "./Auth";
+import { useAuth, LoginPage, AccessDenied, DEFAULT_PERMISSIONS, ADMIN_EMAIL, CEO_EMAILS, LATAM_DIRECTOR_EMAIL } from "./Auth";
 import { AdmissionChecklist } from "./Admission";
 import { CoachesDB } from "./Coaches";
 import { Analytics } from "./Analytics";
@@ -382,19 +382,39 @@ const OfferModal = ({ onClose, onAdd }) => {
 };
 
 const AgentModal = ({ initial, onClose, onSave }) => {
-  const [form,setForm]=useState(initial||{ name:"",role:"Agente",email:"",phone:"",photoUrl:"" });
+  const [form,setForm]=useState(initial||{ name:"",role:"Reclutador",email:"",phone:"",photoUrl:"",region:"global" });
   const [saving,setSaving]=useState(false);
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   const save=async()=>{ if(!form.name.trim()) return; setSaving(true); await onSave(form); setSaving(false); onClose(); };
   return (
-    <Modal title={initial?"Editar agente":"Nuevo agente"} onClose={onClose} maxWidth={420}>
+    <Modal title={initial?"Editar miembro":"Nuevo miembro"} onClose={onClose} maxWidth={420}>
       <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-        <div style={{ display:"flex",alignItems:"center",gap:14 }}><PhotoUpload currentUrl={form.photoUrl} onUpload={u=>set("photoUrl",u)} size={72}/><div style={{ fontSize:12,color:"#6b7280" }}>Foto del agente</div></div>
+        <div style={{ display:"flex",alignItems:"center",gap:14 }}><PhotoUpload currentUrl={form.photoUrl} onUpload={u=>set("photoUrl",u)} size={72}/><div style={{ fontSize:12,color:"#6b7280" }}>Foto</div></div>
         <div><label style={lbl}>Nombre completo</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Nombre..."/></div>
-        <div><label style={lbl}>Cargo / Rol</label><input style={inp} value={form.role} onChange={e=>set("role",e.target.value)} placeholder="Agente, Director, Scout..."/></div>
-        <div><label style={lbl}>Email</label><input style={inp} type="email" value={form.email||""} onChange={e=>set("email",e.target.value)}/></div>
-        <div><label style={lbl}>Teléfono</label><input style={inp} value={form.phone||""} onChange={e=>set("phone",e.target.value)}/></div>
-        <div style={{ display:"flex",gap:10,marginTop:6 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Guardando...":initial?"Guardar":"Crear agente"}</Btn></div></div>
+        <div><label style={lbl}>Cargo / Rol</label>
+          <select style={{ ...inp,cursor:"pointer" }} value={form.role} onChange={e=>set("role",e.target.value)}>
+            <option value="Reclutador">Reclutador</option>
+            <option value="Director LATAM">Director LATAM</option>
+            <option value="Director FUA Sports">Director FUA Sports</option>
+            <option value="Scout">Scout</option>
+            <option value="Closer">Closer</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div><label style={lbl}>Region</label>
+          <select style={{ ...inp,cursor:"pointer" }} value={form.region||"global"} onChange={e=>set("region",e.target.value)}>
+            <option value="global">Global (todas las regiones)</option>
+            <option value="latam">LATAM (Latinoamerica)</option>
+            <option value="europe">Europa</option>
+            <option value="usa">USA</option>
+          </select>
+        </div>
+        <div><label style={lbl}>Email (Gmail para acceso al CRM)</label><input style={inp} type="email" value={form.email||""} onChange={e=>set("email",e.target.value)} placeholder="gmail@gmail.com"/></div>
+        <div><label style={lbl}>Telefono / WhatsApp</label><input style={inp} value={form.phone||""} onChange={e=>set("phone",e.target.value)}/></div>
+        <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:9,padding:"10px 14px",fontSize:12,color:"#6366f1" }}>
+          El miembro accede al CRM entrando con su Gmail en: <strong>{window.location.origin}</strong>
+        </div>
+        <div style={{ display:"flex",gap:10,marginTop:6 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Guardando...":initial?"Guardar":"Crear"}</Btn></div></div>
       </div>
     </Modal>
   );
@@ -1656,7 +1676,7 @@ const PermissionsModal = ({ agentProfile, onClose, onSave }) => {
 };
 
 export default function App() {
-  const { user, profile, loading:authLoading, isAdmin, signOut, can, updatePermissions } = useAuth();
+  const { user, profile, loading:authLoading, isAdmin, isLatamDirector, signOut, can, updatePermissions } = useAuth();
   const [agentProfiles, setAgentProfiles] = useState([]);
   const [permModal, setPermModal] = useState(null);
   const [players,setPlayers]=useState([]);
@@ -1715,8 +1735,12 @@ export default function App() {
   const addPlayer=async(p)=>{ const {data}=await supabase.from("players").insert(playerToDb(p)).select().single(); if(data) await supabase.from("timeline").insert({player_id:data.id,date:new Date().toISOString().split("T")[0],event:"Perfil creado",type:"contact"}); await loadAll(); };
   const saveAgent=async(a)=>{ 
     try {
-      if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null}).eq("id",a.id); 
-      else { const {error} = await supabase.from("agents").insert({name:a.name,role:a.role||"Reclutador",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null}); if(error) throw error; }
+      if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null,region:a.region||"global"}).eq("id",a.id); 
+      else { const {error} = await supabase.from("agents").insert({name:a.name,role:a.role||"Reclutador",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null,region:a.region||"global"}); if(error) throw error; }
+      // Also update agent_profiles if exists
+      if(a.email) {
+        await supabase.from("agent_profiles").update({name:a.name,region:a.region||"global"}).eq("email",a.email);
+      }
       await loadAll();
     } catch(e) { console.error("Error saving agent:",e); alert("Error al guardar. Verifica que el email no esté duplicado."); }
   };
@@ -1742,7 +1766,8 @@ export default function App() {
     await loadAll();
   };
 
-  // Filter data by agent — use email match first, then name match
+  const LATAM_COUNTRIES = ["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia","Costa Rica","Panama","Cuba","Dominican Republic","Guatemala","Honduras","El Salvador","Nicaragua","Haiti"];
+
   const myAgentName = !isAdmin && profile ? (
     agents.find(a=>a.email&&a.email.toLowerCase()===profile.email?.toLowerCase())?.name ||
     agentProfiles.find(p=>p.email===profile.email)?.name ||
@@ -1764,13 +1789,20 @@ export default function App() {
     return pa===an || pa.includes(an.split(" ")[0]) || an.includes(pa.split(" ")[0]);
   };
 
-  const visiblePlayers = isAdmin ? players : players.filter(p=>matchesAgent(p.agent));
-  const visibleLeads = isAdmin ? leads : leads.filter(l=>{
-    if(!l.referred_by) return false;
-    const rb = l.referred_by.toLowerCase().trim();
-    const ma = (myAgentName||"").toLowerCase().trim();
-    return rb===ma || rb.includes(ma.split(" ")[0]) || ma.split(" ")[0].includes(rb.split(" ")[0]);
-  });
+  // LATAM director sees all LATAM players/leads
+  // Regular recruiter sees only their own
+  const visiblePlayers = isAdmin ? players :
+    isLatamDirector ? players.filter(p=>LATAM_COUNTRIES.includes(p.nationality)) :
+    players.filter(p=>matchesAgent(p.agent));
+
+  const visibleLeads = isAdmin ? leads :
+    isLatamDirector ? leads.filter(l=>LATAM_COUNTRIES.includes(l.nationality)) :
+    leads.filter(l=>{
+      if(!l.referred_by) return false;
+      const rb = l.referred_by.toLowerCase().trim();
+      const ma = (myAgentName||"").toLowerCase().trim();
+      return rb===ma || rb.includes(ma.split(" ")[0]) || ma.split(" ")[0].includes(rb.split(" ")[0]);
+    });
 
   const filtered=useMemo(()=>visiblePlayers.filter(p=>{ const s=search.toLowerCase(); return (p.name.toLowerCase().includes(s)||p.university?.toLowerCase().includes(s)||p.nationality?.toLowerCase().includes(s))&&(fSport==="Todos"||p.sport===fSport)&&(fStatus==="Todos"||p.status===fStatus)&&(fAgent==="Todos"||p.agent===fAgent); }),[visiblePlayers,search,fSport,fStatus,fAgent]);
 
@@ -1793,7 +1825,10 @@ export default function App() {
     {id:"latam",l:"LATAM",icon:I.team,perm:"view_team"},
     {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
   ];
-  const navItems = allNavItems.filter(item=>can(item.perm));
+  // Miguel sees all sections relevant to LATAM
+  const navItems = isLatamDirector
+    ? allNavItems.filter(i=>["dashboard","players","leads","offers","coaches","earnings","calendar","latam"].includes(i.id))
+    : allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link
   const agentObj=currentAgent?agents.find(a=>a.name===currentAgent||a.name.toLowerCase().includes(currentAgent.toLowerCase())):null;
@@ -1896,7 +1931,7 @@ export default function App() {
                 <div style={{ width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0 }}>{(user?.email||"?")[0].toUpperCase()}</div>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:11,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{profile?.name||user?.email?.split("@")[0]}</div>
-                  <div style={{ fontSize:9,color:isAdmin?"#f59e0b":"#6b7280" }}>{isAdmin?"CEO":"Reclutador"}</div>
+                  <div style={{ fontSize:9,color:isAdmin?"#f59e0b":isLatamDirector?"#10b981":"#6b7280" }}>{isAdmin?"CEO":isLatamDirector?"Director LATAM":"Reclutador"}</div>
                 </div>
                 <button onClick={signOut} style={{ background:"none",border:"none",color:"#4b5563",cursor:"pointer",fontSize:11,fontFamily:"inherit",padding:"2px 6px",borderRadius:5 }} title="Cerrar sesión">↩</button>
               </div>
@@ -2224,9 +2259,10 @@ export default function App() {
           {nav==="latam"&&(
             <div>
               <div style={{ marginBottom:20 }}>
-                <div style={{ display:"flex",alignItems:"center",gap:14,marginBottom:6 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:14,marginBottom:6,flexWrap:"wrap" }}>
                   <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>FutbolUAgency LATAM</h1>
                   <span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(16,185,129,0.1)",color:"#10b981",fontSize:12,fontWeight:600,border:"1px solid rgba(16,185,129,0.2)" }}>Director: Miguel</span>
+                  {(isAdmin||isLatamDirector)&&<button onClick={()=>setAgentModal({name:"",role:"Reclutador",email:"",phone:"",photoUrl:"",region:"latam"})} style={{ padding:"7px 14px",borderRadius:8,border:"none",background:"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>+ Nuevo reclutador LATAM</button>}
                 </div>
                 <p style={{ color:"#6b7280",fontSize:13 }}>Division Latinoamerica — gestion independiente de reclutadores y atletas</p>
               </div>
@@ -2234,10 +2270,10 @@ export default function App() {
               {/* LATAM Stats */}
               <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 }}>
                 {[
-                  ["Paises LATAM",["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].filter(c=>players.some(p=>p.nationality===c)).length,"#6366f1"],
-                  ["Atletas LATAM",players.filter(p=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality)).length,"#10b981"],
-                  ["Leads LATAM",leads.filter(l=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(l.nationality)).length,"#f59e0b"],
-                  ["Revenue LATAM",`${players.filter(p=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality)).reduce((s,p)=>s+(p.totalFee||2700),0).toLocaleString()}€`,"#8b5cf6"],
+                  ["Paises",LATAM_COUNTRIES.filter(c=>players.some(p=>p.nationality===c)).length,"#6366f1"],
+                  ["Atletas",visiblePlayers.filter(p=>LATAM_COUNTRIES.includes(p.nationality)).length,"#10b981"],
+                  ["Leads",visibleLeads.filter(l=>LATAM_COUNTRIES.includes(l.nationality)).length,"#f59e0b"],
+                  ["Revenue",`${visiblePlayers.filter(p=>LATAM_COUNTRIES.includes(p.nationality)).reduce((s,p)=>s+(p.totalFee||2700),0).toLocaleString()}€`,"#8b5cf6"],
                 ].map(([l,v,c])=>(
                   <div key={l} style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.05)" }}>
                     <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{l}</div>
@@ -2249,23 +2285,26 @@ export default function App() {
               {/* LATAM Reclutadores */}
               <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:14,padding:"20px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
                 <div style={{ fontSize:12,fontWeight:700,color:"#1a1a2e",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14 }}>Reclutadores LATAM</div>
-                {agentProfiles.filter(p=>p.role==="recruiter").length===0&&<div style={{ color:"#9ca3af",fontSize:13,textAlign:"center",padding:"20px 0" }}>Sin reclutadores registrados. Los reclutadores entran con su Gmail.</div>}
+                {agentProfiles.filter(p=>p.role==="recruiter"&&(p.region==="latam"||agents.find(a=>a.email===p.email)?.region==="latam")).length===0&&
+                  <div style={{ color:"#9ca3af",fontSize:13,textAlign:"center",padding:"16px 0" }}>Sin reclutadores LATAM. Crea uno con el boton de arriba — entran con su Gmail.</div>}
                 <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                  {agentProfiles.filter(p=>p.role==="recruiter").map(ap=>{
-                    const apPlayers = players.filter(p=>matchesAgentName(p.agent,ap.name)&&["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality));
-                    const apLeads = leads.filter(l=>l.referred_by&&l.referred_by.toLowerCase().includes((ap.name||"").split(" ")[0].toLowerCase())&&["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(l.nationality));
+                  {agentProfiles.filter(p=>p.role==="recruiter"&&(p.region==="latam"||agents.find(a=>a.email===p.email)?.region==="latam"||p.email?.includes("latam"))).map(ap=>{
+                    const apPlayers = players.filter(p=>matchesAgentName(p.agent,ap.name)&&LATAM_COUNTRIES.includes(p.nationality));
+                    const apLeads = leads.filter(l=>l.referred_by&&l.referred_by.toLowerCase().includes((ap.name||"").split(" ")[0].toLowerCase())&&LATAM_COUNTRIES.includes(l.nationality));
+                    const apEarnings = commissions.filter(c=>c.referred_by===ap.name).reduce((s,c)=>s+(c.amount||0),0);
                     return (
-                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"#f9f7f4",border:"1px solid #f0ebe3",borderRadius:10 }}>
+                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:"#f9f7f4",border:"1px solid #f0ebe3",borderRadius:10 }}>
                         <div style={{ width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#10b981,#059669)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff" }}>{(ap.name||"?")[0].toUpperCase()}</div>
                         <div style={{ flex:1 }}>
                           <div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e" }}>{ap.name}</div>
-                          <div style={{ fontSize:11,color:"#9ca3af" }}>{ap.email}</div>
+                          <div style={{ fontSize:11,color:"#9ca3af",marginTop:1 }}>{ap.email}</div>
                         </div>
-                        <div style={{ display:"flex",gap:12,fontSize:12,color:"#6b7280" }}>
-                          <span><strong style={{ color:"#1a1a2e" }}>{apPlayers.length}</strong> atletas LATAM</span>
-                          <span><strong style={{ color:"#10b981" }}>{apLeads.length}</strong> leads LATAM</span>
+                        <div style={{ display:"flex",gap:14,fontSize:12,color:"#6b7280" }}>
+                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#1a1a2e" }}>{apPlayers.length}</div><div style={{ fontSize:10,color:"#9ca3af" }}>atletas</div></div>
+                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#6366f1" }}>{apLeads.length}</div><div style={{ fontSize:10,color:"#9ca3af" }}>leads</div></div>
+                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#10b981" }}>{apEarnings.toLocaleString()}€</div><div style={{ fontSize:10,color:"#9ca3af" }}>ganado</div></div>
                         </div>
-                        {isAdmin&&<button onClick={()=>setPermModal(ap)} style={{ padding:"6px 12px",borderRadius:7,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Permisos</button>}
+                        {(isAdmin||isLatamDirector)&&<button onClick={()=>setPermModal(ap)} style={{ padding:"6px 12px",borderRadius:7,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Permisos</button>}
                       </div>
                     );
                   })}
@@ -2364,8 +2403,11 @@ export default function App() {
                       <Avatar name={agent.name} size={48} photoUrl={agent.photo_url}/>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:15,fontWeight:700,color:"#1a1a2e" }}>{agent.name}</div>
-                        <div style={{ fontSize:11,color:"#6366f1",fontWeight:500,marginTop:3 }}>{agent.role}</div>
-                        {agent.email&&<div style={{ fontSize:11,color:"#374151",marginTop:4 }}>{agent.email}</div>}
+                        <div style={{ display:"flex",gap:6,marginTop:4,flexWrap:"wrap" }}>
+                          <span style={{ fontSize:11,color:"#6366f1",fontWeight:500 }}>{agent.role}</span>
+                          {agent.region&&agent.region!=="global"&&<span style={{ padding:"2px 8px",borderRadius:10,background:agent.region==="latam"?"rgba(16,185,129,0.1)":"rgba(99,102,241,0.1)",color:agent.region==="latam"?"#10b981":"#6366f1",fontSize:10,fontWeight:600,border:`1px solid ${agent.region==="latam"?"rgba(16,185,129,0.2)":"rgba(99,102,241,0.2)"}`}}>{agent.region.toUpperCase()}</span>}
+                        </div>
+                        {agent.email&&<div style={{ fontSize:11,color:"#9ca3af",marginTop:4 }}>{agent.email}</div>}
                       </div>
                       <button onClick={()=>setAgentModal({...agent,photoUrl:agent.photo_url})} style={{ background:"#f0ebe3",border:"none",color:"#6b7280",cursor:"pointer",width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center" }}>{I.edit}</button>
                     </div>
@@ -2377,7 +2419,7 @@ export default function App() {
                         </div>
                       ))}
                     </div>
-                    <button onClick={()=>{ if(window.confirm(`¿Eliminar a ${agent.name}?`)) deleteAgent(agent.id); }} style={{ width:"100%",padding:"7px",borderRadius:8,border:"1px solid rgba(239,68,68,0.12)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>Eliminar</button>
+                    <button onClick={()=>{ if(window.confirm(`Eliminar a ${agent.name}?`)) deleteAgent(agent.id); }} style={{ width:"100%",padding:"7px",borderRadius:8,border:"1px solid rgba(239,68,68,0.12)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>Eliminar</button>
                   </Card>
                 ); })}
               </div>

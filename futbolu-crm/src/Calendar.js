@@ -56,48 +56,45 @@ export const CalendarView = ({ profile, isAdmin, agentProfiles, players, leads }
   const saveEvent = async () => {
     if(!form.title||!form.date) return;
     setSending(true);
-    const color = EVENT_TYPES.find(t=>t.id===form.type)?.color||"#6366f1";
-    const payload = { ...form, color, user_id:profile?.user_id };
-    let savedEvent;
-    if(form.id){
-      const {data} = await supabase.from("calendar_events").update(payload).eq("id",form.id).select().single();
-      savedEvent = data;
-    } else {
-      const {data} = await supabase.from("calendar_events").insert(payload).select().single();
-      savedEvent = data;
-    }
+    try {
+      const color = EVENT_TYPES.find(t=>t.id===form.type)?.color||"#6366f1";
+      const { id, ...rest } = form;
+      const payload = { ...rest, color, user_id:profile?.user_id||null };
 
-    // Send email notification if needed
-    if(form.notify_email && form.assigned_name) {
-      const assignedProfile = (agentProfiles||[]).find(p=>p.name===form.assigned_name);
-      if(assignedProfile?.email) {
-        await sendEmailNotification("calendar_invite", assignedProfile.email, {
-          eventTitle: form.title,
-          eventDate: form.date,
-          eventTime: form.start_time,
-          body: form.description,
-          senderName: profile?.name||"CEO",
-        });
+      if(form.id){
+        await supabase.from("calendar_events").update(payload).eq("id",form.id);
+      } else {
+        await supabase.from("calendar_events").insert(payload);
       }
-    }
 
-    // Send email to lead if it's a lead meeting
-    if(form.lead_id && form.notify_email) {
-      const lead = (leads||[]).find(l=>l.id===form.lead_id);
-      if(lead?.email) {
-        await sendEmailNotification("lead_meeting", lead.email, {
-          eventTitle: form.title,
-          eventDate: form.date,
-          eventTime: form.start_time,
-          body: form.description,
-        });
+      // Send email notification — non-blocking, don't await
+      if(form.notify_email && form.assigned_name) {
+        const assignedProfile = (agentProfiles||[]).find(p=>p.name===form.assigned_name);
+        if(assignedProfile?.email) {
+          sendEmailNotification("calendar_invite", assignedProfile.email, {
+            eventTitle: form.title, eventDate: form.date, eventTime: form.start_time,
+            body: form.description, senderName: profile?.name||"CEO",
+          }).catch(e=>console.log("Email error:",e));
+        }
       }
-    }
+      if(form.lead_id && form.notify_email) {
+        const lead = (leads||[]).find(l=>l.id===form.lead_id);
+        if(lead?.email) {
+          sendEmailNotification("lead_meeting", lead.email, {
+            eventTitle: form.title, eventDate: form.date, eventTime: form.start_time,
+            body: form.description,
+          }).catch(e=>console.log("Email error:",e));
+        }
+      }
 
-    await loadEvents();
+      await loadEvents();
+      setSent(true);
+      setTimeout(()=>{ setSent(false); setModal(null); resetForm(); }, 1200);
+    } catch(e) {
+      console.error("Error saving event:", e);
+      alert("Error al guardar. Intenta de nuevo.");
+    }
     setSending(false);
-    setSent(true);
-    setTimeout(()=>{ setSent(false); setModal(null); resetForm(); }, 1500);
   };
 
   const deleteEvent = async (id) => {

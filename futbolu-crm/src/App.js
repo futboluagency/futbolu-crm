@@ -6,6 +6,7 @@ import { CoachesDB } from "./Coaches";
 import { Analytics } from "./Analytics";
 import { ALL_UNIVERSITIES, getAllUniversities } from "./Universities";
 import { CalendarView } from "./Calendar";
+import { RecruiterDashboard } from "./RecruiterDashboard";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -1717,7 +1718,13 @@ export default function App() {
   useEffect(()=>{ loadAll(); },[]); // eslint-disable-line
 
   const addPlayer=async(p)=>{ const {data}=await supabase.from("players").insert(playerToDb(p)).select().single(); if(data) await supabase.from("timeline").insert({player_id:data.id,date:new Date().toISOString().split("T")[0],event:"Perfil creado",type:"contact"}); await loadAll(); };
-  const saveAgent=async(a)=>{ if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null}).eq("id",a.id); else await supabase.from("agents").insert({name:a.name,role:a.role||"Agente",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null}); await loadAll(); };
+  const saveAgent=async(a)=>{ 
+    try {
+      if(a.id) await supabase.from("agents").update({name:a.name,role:a.role,email:a.email,phone:a.phone,photo_url:a.photoUrl||null}).eq("id",a.id); 
+      else { const {error} = await supabase.from("agents").insert({name:a.name,role:a.role||"Reclutador",email:a.email||null,phone:a.phone||null,photo_url:a.photoUrl||null}); if(error) throw error; }
+      await loadAll();
+    } catch(e) { console.error("Error saving agent:",e); alert("Error al guardar. Verifica que el email no esté duplicado."); }
+  };
   const deleteAgent=async(id)=>{ await supabase.from("agents").delete().eq("id",id); await loadAll(); };
   const deleteLead=async(id)=>{ await supabase.from("leads").delete().eq("id",id); await loadAll(); };
   const generateAthleteToken = async (playerId) => {
@@ -1884,7 +1891,8 @@ export default function App() {
           <div style={{ padding:"24px 28px" }}>
 
           {/* DASHBOARD */}
-          {nav==="dashboard"&&(
+          {nav==="dashboard"&&!isAdmin&&<RecruiterDashboard profile={profile} players={visiblePlayers} leads={visibleLeads} commissions={commissions}/>}
+          {nav==="dashboard"&&isAdmin&&(
             <div>
               <div style={{ marginBottom:20 }}>
                 <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>Dashboard</h1>

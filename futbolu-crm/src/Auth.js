@@ -54,10 +54,16 @@ export const AuthProvider = ({ children }) => {
         .single();
       setProfile(newProfile);
     } else {
-      // New recruiter — create pending profile
+      // New recruiter — check agents table for matching email first
+      const { data: agentMatch } = await supabase
+        .from("agents")
+        .select("name,email")
+        .eq("email", email)
+        .single();
+      const recruiterName = agentMatch?.name || email.split("@")[0];
       const { data: newProfile } = await supabase
         .from("agent_profiles")
-        .insert({ user_id: userId, email, role: "recruiter", name: email.split("@")[0], permissions: JSON.stringify(DEFAULT_PERMISSIONS) })
+        .insert({ user_id: userId, email, role: "recruiter", name: recruiterName, permissions: JSON.stringify(DEFAULT_PERMISSIONS) })
         .select()
         .single();
       setProfile(newProfile);

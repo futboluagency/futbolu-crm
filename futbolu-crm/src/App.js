@@ -434,85 +434,79 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
   const tlC={contact:"#6366f1",contract:"#8b5cf6",milestone:"#10b981",achievement:"#f59e0b",payment:"#22c55e"};
   const tlE={contact:"👋",contract:"✍️",milestone:"🎯",achievement:"🏆",payment:"💰"};
 
-  const InfoCard = ({ label, value, color="#e5e7eb" }) => (
-    <div style={{ background:"#f0ebe3",border:"1px solid #ede8e0",borderRadius:10,padding:"12px 14px" }}>
-      <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>{label}</div>
-      <div style={{ fontSize:13,color,fontWeight:600 }}>{value||"—"}</div>
+  const InfoCard = ({ label, value, color }) => (
+    <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:10,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{label}</div>
+      <div style={{ fontSize:14,color:color||"#1a1a2e",fontWeight:600,lineHeight:1.3 }}>{value||<span style={{ color:"#d1d5db" }}>—</span>}</div>
     </div>
   );
 
   return (
     <div>
-      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,gap:8,flexWrap:"wrap" }}>
-        <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,padding:0,fontFamily:"inherit" }}>{I.back} Volver</button>
+      {/* Top bar */}
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,gap:8,flexWrap:"wrap" }}>
+        <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:13,padding:0,fontFamily:"inherit",fontWeight:500 }}>{I.back} Volver</button>
         <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-          <button onClick={()=>setPublicModal(true)} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(99,102,241,0.2)",background:"rgba(99,102,241,0.06)",color:"#818cf8",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{I.share} Compartir</button>
-          {portalUrl
-            ? <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setGeneratedLink(portalUrl); setTimeout(()=>setTokenCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{tokenCopied?"Copiado":"Portal atleta"}</button>
-            : <button onClick={async()=>{ const t=await onGenerateToken(player.id); if(t){ setLocalToken(t); const link=`${window.location.origin}?athlete=${t}`; setGeneratedLink(link); try{ navigator.clipboard.writeText(link); }catch(e){} setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }}} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid #e5e0d8",background:"#f9f7f4",color:"#374151",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>Crear portal</button>
-          }
+          <button onClick={()=>setPublicModal(true)} style={{ padding:"7px 14px",borderRadius:8,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>Compartir perfil</button>
+          <button onClick={()=>setEditModal(true)} style={{ padding:"7px 14px",borderRadius:8,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:500 }}>Editar</button>
+          <button onClick={async()=>{ if(window.confirm(`Eliminar a ${player.name}?`)){ await supabase.from("offers").delete().eq("player_id",player.id); await supabase.from("timeline").delete().eq("player_id",player.id); await supabase.from("players").delete().eq("id",player.id); await onRefresh(); onBack(); }}} style={{ padding:"7px 14px",borderRadius:8,border:"1px solid #fecaca",background:"none",color:"#ef4444",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>Eliminar</button>
         </div>
       </div>
 
-      {/* Portal link popup */}
-      {generatedLink&&<div style={{ marginBottom:14,background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:12,padding:"14px 16px" }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-          <div style={{ fontSize:12,fontWeight:700,color:"#10b981" }}>Link del portal del atleta</div>
-          <button onClick={()=>setGeneratedLink(null)} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:16 }}>✕</button>
-        </div>
-        <div style={{ background:"#f9f7f4",border:"1px solid #e8e3db",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#374151",wordBreak:"break-all",marginBottom:10 }}>{generatedLink}</div>
-        <div style={{ display:"flex",gap:8 }}>
-          <button onClick={()=>{ navigator.clipboard.writeText(generatedLink); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ flex:1,padding:"8px",borderRadius:8,border:"none",background:tokenCopied?"#10b981":"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{tokenCopied?"Copiado":"Copiar link"}</button>
-          <a href={generatedLink} target="_blank" rel="noreferrer" style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid #e8e3db",background:"#f9f7f4",color:"#374151",textDecoration:"none",fontSize:12,fontWeight:600,textAlign:"center" }}>Ver portal</a>
-        </div>
-        <div style={{ fontSize:11,color:"#9ca3af",marginTop:8 }}>Comparte este link con {player.name}. Solo el puede acceder.</div>
-      </div>}
-
-      {/* Hero */}
-      <div style={{ background:"#f0ebe3",border:"1px solid #e8e3db",borderRadius:12,padding:"18px 20px",marginBottom:14 }}>
-        <div style={{ display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap" }}>
-          <Avatar name={player.name} size={66} photoUrl={player.photoUrl}/>
-          <div style={{ flex:1,minWidth:160 }}>
-            <div style={{ display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:6 }}>
-              <h1 style={{ margin:0,fontSize:20,fontWeight:800,color:"#1a1a2e",letterSpacing:-0.5 }}>{player.name}</h1>
+      {/* Hero card */}
+      <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:16,padding:"24px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
+        <div style={{ display:"flex",gap:18,alignItems:"flex-start",flexWrap:"wrap" }}>
+          <Avatar name={player.name} size={80} photoUrl={player.photoUrl}/>
+          <div style={{ flex:1,minWidth:200 }}>
+            <div style={{ display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:8 }}>
+              <h1 style={{ margin:0,fontSize:24,fontWeight:800,color:"#1a1a2e",letterSpacing:-0.5 }}>{player.name}</h1>
               <Badge s={player.status}/>
             </div>
-            <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:10 }}>
-              {[[player.sport,"#6366f1"],[player.position,"#8b5cf6"],[player.nationality,"#6b7280"],[player.agent,"#818cf8"]].filter(([v])=>v).map(([v,c])=><span key={v} style={{ fontSize:12,color:c,fontWeight:500 }}>{v}</span>)}
+            <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:12 }}>
+              {player.sport&&<span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:12,fontWeight:600,border:"1px solid rgba(99,102,241,0.2)" }}>{player.sport}</span>}
+              {player.position&&<span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(139,92,246,0.08)",color:"#8b5cf6",fontSize:12,fontWeight:600,border:"1px solid rgba(139,92,246,0.15)" }}>{player.position}</span>}
+              {player.nationality&&<span style={{ padding:"4px 12px",borderRadius:20,background:"#f9f7f4",color:"#6b7280",fontSize:12,fontWeight:500,border:"1px solid #e8e3db" }}>{player.nationality}</span>}
+              {player.age&&<span style={{ padding:"4px 12px",borderRadius:20,background:"#f9f7f4",color:"#6b7280",fontSize:12,fontWeight:500,border:"1px solid #e8e3db" }}>{player.age} años</span>}
+              {player.agent&&<span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(16,185,129,0.08)",color:"#10b981",fontSize:12,fontWeight:600,border:"1px solid rgba(16,185,129,0.15)" }}>Agente: {player.agent}</span>}
             </div>
-            <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-              <div style={{ background:paid>=totalFee?"rgba(16,185,129,0.08)":paid>0?"rgba(245,158,11,0.06)":"rgba(239,68,68,0.06)",borderRadius:8,padding:"4px 10px",border:`1px solid ${paid>=totalFee?"rgba(16,185,129,0.18)":paid>0?"rgba(245,158,11,0.18)":"rgba(239,68,68,0.18)"}` }}>
-                <span style={{ fontSize:12,fontWeight:700,color:paid>=totalFee?"#10b981":paid>0?"#f59e0b":"#ef4444" }}>{paid>=totalFee?`✓ ${totalFee}€`:`${paid}€ / ${totalFee}€`}</span>
+            <div style={{ display:"flex",gap:10,flexWrap:"wrap",alignItems:"center" }}>
+              <div style={{ padding:"6px 14px",borderRadius:8,background:paid>=totalFee?"rgba(16,185,129,0.08)":paid>0?"rgba(245,158,11,0.06)":"rgba(239,68,68,0.06)",border:`1px solid ${paid>=totalFee?"rgba(16,185,129,0.2)":paid>0?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.15)"}` }}>
+                <span style={{ fontSize:13,fontWeight:700,color:paid>=totalFee?"#10b981":paid>0?"#f59e0b":"#ef4444" }}>{paid>=totalFee?`Pagado ${totalFee}€`:`${paid}€ / ${totalFee}€`}</span>
               </div>
-              {player.videoUrl&&<a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ display:"flex",alignItems:"center",gap:5,background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.18)",borderRadius:8,padding:"4px 10px",textDecoration:"none",color:"#f87171",fontSize:12,fontWeight:600 }}>{I.video} Vídeo</a>}
+              {player.scholarshipPct>0&&<div style={{ padding:"6px 14px",borderRadius:8,background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.15)" }}><span style={{ fontSize:13,fontWeight:700,color:"#6366f1" }}>Beca {player.scholarshipPct}%</span></div>}
+              {player.videoUrl&&<a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ padding:"6px 14px",borderRadius:8,background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)",textDecoration:"none",color:"#ef4444",fontSize:12,fontWeight:600 }}>Ver video</a>}
             </div>
-          </div>
-          <div style={{ display:"flex",gap:8 }}>
-            <button onClick={()=>setEditModal(true)} style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:"1px solid #e8e3db",background:"#f5f0e8",color:"#6b7280",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>{I.edit} Editar</button>
-            <button onClick={async()=>{ if(window.confirm(`¿Eliminar a ${player.name}?\nEsta acción no se puede deshacer.`)){ await supabase.from("offers").delete().eq("player_id",player.id); await supabase.from("timeline").delete().eq("player_id",player.id); await supabase.from("players").delete().eq("id",player.id); await onRefresh(); onBack(); }}} style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(239,68,68,0.2)",background:"rgba(239,68,68,0.06)",color:"#ef4444",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>🗑️ Eliminar</button>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display:"flex",gap:1,marginBottom:14,background:"#faf8f5",borderRadius:10,padding:3,overflowX:"auto" }}>
-        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"7px 13px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,whiteSpace:"nowrap",background:tab===t.id?"rgba(99,102,241,0.18)":"none",color:tab===t.id?"#818cf8":"#6b7280",fontFamily:"inherit" }}>{t.l}</button>)}
+      <div style={{ display:"flex",gap:2,marginBottom:16,background:"#f5f0e8",borderRadius:12,padding:4,overflowX:"auto" }}>
+        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"8px 16px",borderRadius:9,border:"none",cursor:"pointer",fontSize:13,fontWeight:tab===t.id?600:400,whiteSpace:"nowrap",background:tab===t.id?"#fff":"none",color:tab===t.id?"#1a1a2e":"#9ca3af",fontFamily:"inherit",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,0.08)":"none" }}>{t.l}</button>)}
       </div>
 
-      {tab==="profile"&&<div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8 }}>
-        {[["Email",player.email],["Teléfono",player.phone],["Instagram",player.instagram],["Nacionalidad",player.nationality],["Edad",player.age?`${player.age} años`:null],["Agente",player.agent]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
-        {player.videoUrl&&<div style={{ gridColumn:"1/-1",background:"rgba(239,68,68,0.04)",border:"1px solid rgba(239,68,68,0.1)",borderRadius:10,padding:"12px 14px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>Vídeo</div><a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ color:"#f87171",textDecoration:"none",fontSize:12,fontWeight:600 }}>{player.videoUrl}</a></div>}
-        {player.notes&&<div style={{ gridColumn:"1/-1",background:"rgba(99,102,241,0.04)",border:"1px solid rgba(99,102,241,0.1)",borderRadius:10,padding:"12px 14px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>Notas internas</div><div style={{ fontSize:12,color:"#4b5563",lineHeight:1.6 }}>{player.notes}</div></div>}
+      {tab==="profile"&&<div>
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10,marginBottom:12 }}>
+          {[["Email",player.email],["Telefono",player.phone],["Instagram",player.instagram],["Nacionalidad",player.nationality],["Edad",player.age?`${player.age} años`:null],["Agente",player.agent]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
+        </div>
+        {player.videoUrl&&<div style={{ background:"#fff",border:"1px solid rgba(239,68,68,0.15)",borderRadius:12,padding:"14px 18px",marginBottom:10 }}>
+          <div style={{ fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Video highlight</div>
+          <a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ color:"#ef4444",textDecoration:"none",fontSize:13,fontWeight:600 }}>{player.videoUrl}</a>
+        </div>}
+        {player.notes&&<div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"14px 18px" }}>
+          <div style={{ fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:8,fontWeight:600 }}>Notas internas</div>
+          <div style={{ fontSize:14,color:"#374151",lineHeight:1.7 }}>{player.notes}</div>
+        </div>}
       </div>}
 
       {tab==="sports"&&<div>
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8,marginBottom:12 }}>
-          {[["Deporte",player.sport],["Posición",player.position],["Altura",player.height?`${player.height} cm`:null],["Peso",player.weight?`${player.weight} kg`:null],["Universidad",player.university],["% Beca",`${player.scholarshipPct}%`]].map(([l,v])=><InfoCard key={l} label={l} value={v} color={l==="% Beca"?"#6366f1":"#e5e7eb"}/>)}
+        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10,marginBottom:14 }}>
+          {[["Deporte",player.sport],["Posicion",player.position],["Altura",player.height?`${player.height} cm`:null],["Peso",player.weight?`${player.weight} kg`:null],["Universidad",player.university],["Beca",player.scholarshipPct?`${player.scholarshipPct}%`:null]].map(([l,v])=><InfoCard key={l} label={l} value={v} color={l==="Beca"?"#6366f1":undefined}/>)}
         </div>
         {sf.length>0&&<div>
-          <div style={{ fontSize:10,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:10 }}>{player.sport} · Estadísticas</div>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8 }}>
-            {sf.map(([l,k])=>{ const v=(k==="foot"||k==="height"||k==="weight")?player[k]:sd[k]; if(!v) return null; return <div key={k} style={{ background:"rgba(245,158,11,0.04)",border:"1px solid rgba(245,158,11,0.1)",borderRadius:10,padding:"12px 14px" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>{l}</div><div style={{ fontSize:13,color:"#fbbf24",fontWeight:700 }}>{v}</div></div>; })}
+          <div style={{ fontSize:11,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:10 }}>{player.sport} — Estadisticas</div>
+          <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10 }}>
+            {sf.map(([l,k])=>{ const v=(k==="foot"||k==="height"||k==="weight")?player[k]:sd[k]; if(!v) return null; return <InfoCard key={k} label={l} value={v} color="#6366f1"/>; })}
           </div>
         </div>}
       </div>}
@@ -1795,6 +1789,8 @@ export default function App() {
     {id:"earnings",l:"Ganancias",icon:I.fin,perm:"view_commissions"},
     {id:"analytics",l:"Analiticas",icon:I.dash,perm:"view_payments"},
     {id:"calendar",l:"Calendario",icon:I.dash,perm:"view_dashboard"},
+    {id:"fua-sports",l:"FUA Sports",icon:I.team,perm:"view_team"},
+    {id:"latam",l:"LATAM",icon:I.team,perm:"view_team"},
     {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
   ];
   const navItems = allNavItems.filter(item=>can(item.perm));
@@ -2166,6 +2162,141 @@ export default function App() {
                   ); })}
                 </div>
               </Card>
+            </div>
+          )}
+
+          {/* FUA SPORTS */}
+          {nav==="fua-sports"&&(
+            <div>
+              <div style={{ marginBottom:20 }}>
+                <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>FUA Sports</h1>
+                <p style={{ color:"#6b7280",fontSize:13,marginTop:3 }}>Departamentos de Volleyball, Tenis y otros deportes</p>
+              </div>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14,marginBottom:20 }}>
+                {[
+                  { sport:"Volleyball", color:"#6366f1", desc:"Director del departamento de Volleyball" },
+                  { sport:"Tennis", color:"#10b981", desc:"Director del departamento de Tenis" },
+                  { sport:"Swimming", color:"#3b82f6", desc:"Director del departamento de Natacion" },
+                  { sport:"Golf", color:"#f59e0b", desc:"Director del departamento de Golf" },
+                  { sport:"Baseball", color:"#ef4444", desc:"Director del departamento de Baseball" },
+                  { sport:"Basketball", color:"#8b5cf6", desc:"Director del departamento de Basketball" },
+                ].map(dept=>{
+                  const deptPlayers = players.filter(p=>p.sport===dept.sport);
+                  const deptLeads = leads.filter(l=>l.sport===dept.sport);
+                  return (
+                    <div key={dept.sport} style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:14,padding:"20px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14 }}>
+                        <div style={{ width:44,height:44,borderRadius:12,background:`${dept.color}15`,border:`1px solid ${dept.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20 }}>
+                          {{ Soccer:"⚽",Tennis:"🎾",Swimming:"🏊",Baseball:"⚾",Basketball:"🏀","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[dept.sport]||"🏅"}
+                        </div>
+                        <div>
+                          <div style={{ fontSize:15,fontWeight:700,color:"#1a1a2e" }}>FUA Sports — {dept.sport}</div>
+                          <div style={{ fontSize:11,color:"#9ca3af",marginTop:2 }}>{dept.desc}</div>
+                        </div>
+                      </div>
+                      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                        <div style={{ background:"#f9f7f4",border:"1px solid #f0ebe3",borderRadius:9,padding:"10px 12px",textAlign:"center" }}>
+                          <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>Atletas</div>
+                          <div style={{ fontSize:18,fontWeight:800,color:dept.color }}>{deptPlayers.length}</div>
+                        </div>
+                        <div style={{ background:"#f9f7f4",border:"1px solid #f0ebe3",borderRadius:9,padding:"10px 12px",textAlign:"center" }}>
+                          <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>Leads</div>
+                          <div style={{ fontSize:18,fontWeight:800,color:"#6b7280" }}>{deptLeads.length}</div>
+                        </div>
+                      </div>
+                      {deptPlayers.slice(0,3).map(p=>(
+                        <div key={p.id} style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderTop:"1px solid #f5f0e8",marginTop:10 }}>
+                          <Avatar name={p.name} size={28} photoUrl={p.photoUrl}/>
+                          <div style={{ flex:1,minWidth:0 }}>
+                            <div style={{ fontSize:12,fontWeight:600,color:"#1a1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.name}</div>
+                            <div style={{ fontSize:10,color:"#9ca3af" }}>{p.status} · {p.nationality}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* LATAM */}
+          {nav==="latam"&&(
+            <div>
+              <div style={{ marginBottom:20 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:14,marginBottom:6 }}>
+                  <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>FutbolUAgency LATAM</h1>
+                  <span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(16,185,129,0.1)",color:"#10b981",fontSize:12,fontWeight:600,border:"1px solid rgba(16,185,129,0.2)" }}>Director: Miguel</span>
+                </div>
+                <p style={{ color:"#6b7280",fontSize:13 }}>Division Latinoamerica — gestion independiente de reclutadores y atletas</p>
+              </div>
+
+              {/* LATAM Stats */}
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 }}>
+                {[
+                  ["Paises LATAM",["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].filter(c=>players.some(p=>p.nationality===c)).length,"#6366f1"],
+                  ["Atletas LATAM",players.filter(p=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality)).length,"#10b981"],
+                  ["Leads LATAM",leads.filter(l=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(l.nationality)).length,"#f59e0b"],
+                  ["Revenue LATAM",`${players.filter(p=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality)).reduce((s,p)=>s+(p.totalFee||2700),0).toLocaleString()}€`,"#8b5cf6"],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.05)" }}>
+                    <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{l}</div>
+                    <div style={{ fontSize:22,fontWeight:800,color:c }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* LATAM Reclutadores */}
+              <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:14,padding:"20px",marginBottom:14,boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontSize:12,fontWeight:700,color:"#1a1a2e",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14 }}>Reclutadores LATAM</div>
+                {agentProfiles.filter(p=>p.role==="recruiter").length===0&&<div style={{ color:"#9ca3af",fontSize:13,textAlign:"center",padding:"20px 0" }}>Sin reclutadores registrados. Los reclutadores entran con su Gmail.</div>}
+                <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                  {agentProfiles.filter(p=>p.role==="recruiter").map(ap=>{
+                    const apPlayers = players.filter(p=>matchesAgentName(p.agent,ap.name)&&["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality));
+                    const apLeads = leads.filter(l=>l.referred_by&&l.referred_by.toLowerCase().includes((ap.name||"").split(" ")[0].toLowerCase())&&["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(l.nationality));
+                    return (
+                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"#f9f7f4",border:"1px solid #f0ebe3",borderRadius:10 }}>
+                        <div style={{ width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#10b981,#059669)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff" }}>{(ap.name||"?")[0].toUpperCase()}</div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e" }}>{ap.name}</div>
+                          <div style={{ fontSize:11,color:"#9ca3af" }}>{ap.email}</div>
+                        </div>
+                        <div style={{ display:"flex",gap:12,fontSize:12,color:"#6b7280" }}>
+                          <span><strong style={{ color:"#1a1a2e" }}>{apPlayers.length}</strong> atletas LATAM</span>
+                          <span><strong style={{ color:"#10b981" }}>{apLeads.length}</strong> leads LATAM</span>
+                        </div>
+                        {isAdmin&&<button onClick={()=>setPermModal(ap)} style={{ padding:"6px 12px",borderRadius:7,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Permisos</button>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* LATAM Athletes */}
+              <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:14,padding:"20px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontSize:12,fontWeight:700,color:"#1a1a2e",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14 }}>Atletas LATAM</div>
+                {["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].map(country=>{
+                  const countryPlayers = players.filter(p=>p.nationality===country);
+                  if(countryPlayers.length===0) return null;
+                  return (
+                    <div key={country} style={{ marginBottom:12 }}>
+                      <div style={{ fontSize:11,fontWeight:600,color:"#6b7280",marginBottom:6 }}>{country} ({countryPlayers.length})</div>
+                      <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
+                        {countryPlayers.map(p=>(
+                          <div key={p.id} style={{ display:"flex",alignItems:"center",gap:8,padding:"6px 12px",background:"#f9f7f4",border:"1px solid #f0ebe3",borderRadius:8 }}>
+                            <Avatar name={p.name} size={22} photoUrl={p.photoUrl}/>
+                            <div>
+                              <div style={{ fontSize:12,fontWeight:600,color:"#1a1a2e" }}>{p.name}</div>
+                              <div style={{ fontSize:10,color:"#9ca3af" }}>{p.sport} · {p.status}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {players.filter(p=>["Colombia","Venezuela","Mexico","Argentina","Brasil","Peru","Chile","Ecuador","Uruguay","Paraguay","Bolivia"].includes(p.nationality)).length===0&&<div style={{ color:"#9ca3af",fontSize:13,textAlign:"center",padding:"20px 0" }}>Sin atletas de LATAM registrados</div>}
+              </div>
             </div>
           )}
 

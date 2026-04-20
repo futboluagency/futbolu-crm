@@ -22,6 +22,7 @@ export const DEFAULT_PERMISSIONS = {
 
 export const ADMIN_EMAIL = "futboluagency@gmail.com";
 export const CEO_EMAILS = ["futboluagency@gmail.com", "ignaciofutboluagency@gmail.com"];
+export const LATAM_DIRECTOR_EMAIL = "miguelangelrojascas@gmail.com";
 
 // ─── AUTH PROVIDER ────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }) => {
@@ -41,31 +42,42 @@ export const AuthProvider = ({ children }) => {
       if (CEO_EMAILS.includes(email) && data.role !== "ceo") {
         await supabase.from("agent_profiles").update({ role: "ceo" }).eq("id", data.id);
         setProfile({ ...data, role: "ceo" });
+      } else if (email === LATAM_DIRECTOR_EMAIL && data.role !== "latam_director") {
+        await supabase.from("agent_profiles").update({ role: "latam_director", region: "latam" }).eq("id", data.id);
+        setProfile({ ...data, role: "latam_director", region: "latam" });
       } else {
         setProfile(data);
       }
     } else if (CEO_EMAILS.includes(email)) {
-      // Auto-create CEO profile
       const name = email === "futboluagency@gmail.com" ? "Moha" : "Ignacio";
       const { data: newProfile } = await supabase
         .from("agent_profiles")
-        .insert({ user_id: userId, email, role: "ceo", name, permissions: JSON.stringify(Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map(k => [k, true]))) })
-        .select()
-        .single();
+        .insert({ user_id: userId, email, role: "ceo", name, region: "global", permissions: JSON.stringify(Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map(k => [k, true]))) })
+        .select().single();
       setProfile(newProfile);
-    } else {
-      // New recruiter — check agents table for matching email first
-      const { data: agentMatch } = await supabase
-        .from("agents")
-        .select("name,email")
-        .eq("email", email)
-        .single();
-      const recruiterName = agentMatch?.name || email.split("@")[0];
+    } else if (email === LATAM_DIRECTOR_EMAIL) {
+      // Auto-create Miguel as LATAM director
       const { data: newProfile } = await supabase
         .from("agent_profiles")
-        .insert({ user_id: userId, email, role: "recruiter", name: recruiterName, permissions: JSON.stringify(DEFAULT_PERMISSIONS) })
-        .select()
-        .single();
+        .insert({ user_id: userId, email, role: "latam_director", name: "Miguel", region: "latam", permissions: JSON.stringify(Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map(k => [k, true]))) })
+        .select().single();
+      setProfile(newProfile);
+    } else {
+      // Check agents table for matching email — may have region/role pre-set
+      const { data: agentMatch } = await supabase
+        .from("agents").select("name,email,region").eq("email", email).single();
+      const recruiterName = agentMatch?.name || email.split("@")[0];
+      const region = agentMatch?.region || "global";
+      // latam_director gets full permissions for latam
+      const isLatamDir = region === "latam" && agentMatch?.role === "latam_director";
+      const perms = isLatamDir
+        ? JSON.stringify(Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map(k => [k, true])))
+        : JSON.stringify(DEFAULT_PERMISSIONS);
+      const role = isLatamDir ? "latam_director" : "recruiter";
+      const { data: newProfile } = await supabase
+        .from("agent_profiles")
+        .insert({ user_id: userId, email, role, name: recruiterName, region, permissions: perms })
+        .select().single();
       setProfile(newProfile);
     }
   };
@@ -107,6 +119,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = profile?.role === "admin" || profile?.role === "ceo" || CEO_EMAILS.includes(user?.email);
+  const isLatamDirector = profile?.role === "latam_director" || user?.email === LATAM_DIRECTOR_EMAIL;
 
   const can = (permission) => {
     if (isAdmin) return true;
@@ -120,7 +133,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, signInWithGoogle, signOut, can, updatePermissions }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isLatamDirector, signInWithGoogle, signOut, can, updatePermissions }}>
       {children}
     </AuthContext.Provider>
   );

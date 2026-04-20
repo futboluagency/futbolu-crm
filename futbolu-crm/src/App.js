@@ -409,12 +409,13 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
   const [saving,setSaving]=useState(false);
   const [tokenCopied,setTokenCopied]=useState(false);
   const [generatedLink,setGeneratedLink]=useState(null);
+  const [localToken,setLocalToken]=useState(player.access_token||null);
   const [playerDocs,setPlayerDocs]=useState([]);
   const paid=(player.payment1?.paid?(player.payment1Amount||900):0)+(player.payment2?.paid?(player.payment2Amount||1800):0);
   const totalFee=player.totalFee||2700;
   const sd=player.sportData||{};
   const sf=SPORT_FIELDS[player.sport]||[];
-  const portalUrl = player.access_token ? `${window.location.origin}?athlete=${player.access_token}` : null;
+  const portalUrl = localToken ? `${window.location.origin}?athlete=${localToken}` : null;
 
   useEffect(()=>{
     const loadDocs = async () => {
@@ -447,24 +448,24 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
         <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
           <button onClick={()=>setPublicModal(true)} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(99,102,241,0.2)",background:"rgba(99,102,241,0.06)",color:"#818cf8",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{I.share} Compartir</button>
           {portalUrl
-            ? <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setGeneratedLink(portalUrl); setTimeout(()=>setTokenCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🏅 {tokenCopied?"¡Copiado!":"Portal atleta"}</button>
-            : <button onClick={async()=>{ const t=await onGenerateToken(player.id); if(t){ const link=`${window.location.origin}?athlete=${t}`; setGeneratedLink(link); try{ navigator.clipboard.writeText(link); }catch(e){} setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }}} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(245,158,11,0.25)",background:"rgba(245,158,11,0.08)",color:"#f59e0b",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>🔑 Crear portal</button>
+            ? <button onClick={()=>{ navigator.clipboard.writeText(portalUrl); setTokenCopied(true); setGeneratedLink(portalUrl); setTimeout(()=>setTokenCopied(false),2000); }} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid rgba(16,185,129,0.25)",background:"rgba(16,185,129,0.08)",color:"#10b981",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{tokenCopied?"Copiado":"Portal atleta"}</button>
+            : <button onClick={async()=>{ const t=await onGenerateToken(player.id); if(t){ setLocalToken(t); const link=`${window.location.origin}?athlete=${t}`; setGeneratedLink(link); try{ navigator.clipboard.writeText(link); }catch(e){} setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }}} style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:8,border:"1px solid #e5e0d8",background:"#f9f7f4",color:"#374151",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>Crear portal</button>
           }
         </div>
       </div>
 
       {/* Portal link popup */}
-      {generatedLink&&<div style={{ marginBottom:14,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:12,padding:"14px 16px" }}>
+      {generatedLink&&<div style={{ marginBottom:14,background:"rgba(16,185,129,0.06)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:12,padding:"14px 16px" }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-          <div style={{ fontSize:12,fontWeight:700,color:"#10b981" }}>🔑 Link del portal del atleta</div>
+          <div style={{ fontSize:12,fontWeight:700,color:"#10b981" }}>Link del portal del atleta</div>
           <button onClick={()=>setGeneratedLink(null)} style={{ background:"none",border:"none",color:"#6b7280",cursor:"pointer",fontSize:16 }}>✕</button>
         </div>
-        <div style={{ background:"rgba(0,0,0,0.4)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#1a1a2e",wordBreak:"break-all",marginBottom:10 }}>{generatedLink}</div>
+        <div style={{ background:"#f9f7f4",border:"1px solid #e8e3db",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#374151",wordBreak:"break-all",marginBottom:10 }}>{generatedLink}</div>
         <div style={{ display:"flex",gap:8 }}>
-          <button onClick={()=>{ navigator.clipboard.writeText(generatedLink); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ flex:1,padding:"8px",borderRadius:8,border:"none",background:tokenCopied?"#10b981":"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{tokenCopied?"✓ Copiado":"📋 Copiar link"}</button>
-          <a href={generatedLink} target="_blank" rel="noreferrer" style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid rgba(16,185,129,0.3)",background:"rgba(16,185,129,0.08)",color:"#10b981",textDecoration:"none",fontSize:12,fontWeight:600,textAlign:"center" }}>👁 Ver portal</a>
+          <button onClick={()=>{ navigator.clipboard.writeText(generatedLink); setTokenCopied(true); setTimeout(()=>setTokenCopied(false),2000); }} style={{ flex:1,padding:"8px",borderRadius:8,border:"none",background:tokenCopied?"#10b981":"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{tokenCopied?"Copiado":"Copiar link"}</button>
+          <a href={generatedLink} target="_blank" rel="noreferrer" style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid #e8e3db",background:"#f9f7f4",color:"#374151",textDecoration:"none",fontSize:12,fontWeight:600,textAlign:"center" }}>Ver portal</a>
         </div>
-        <div style={{ fontSize:11,color:"#6b7280",marginTop:8 }}>Comparte este link con {player.name}. Solo él puede acceder.</div>
+        <div style={{ fontSize:11,color:"#9ca3af",marginTop:8 }}>Comparte este link con {player.name}. Solo el puede acceder.</div>
       </div>}
 
       {/* Hero */}
@@ -1747,10 +1748,35 @@ export default function App() {
     await loadAll();
   };
 
-  // Filter data by agent if not admin
-  const myAgentName = !isAdmin && profile ? (agents.find(a=>a.email===profile.email)?.name || profile.name) : null;
-  const visiblePlayers = isAdmin ? players : players.filter(p=>p.agent && (p.agent.toLowerCase().includes((myAgentName||"").toLowerCase()) || (myAgentName||"").toLowerCase().includes(p.agent.split(" ")[0]?.toLowerCase()||"")));
-  const visibleLeads = isAdmin ? leads : leads.filter(l=>l.referred_by && (l.referred_by.toLowerCase().includes((myAgentName||"").split(" ")[0]?.toLowerCase()||"")));
+  // Filter data by agent — use email match first, then name match
+  const myAgentName = !isAdmin && profile ? (
+    agents.find(a=>a.email&&a.email.toLowerCase()===profile.email?.toLowerCase())?.name ||
+    agentProfiles.find(p=>p.email===profile.email)?.name ||
+    profile.name
+  ) : null;
+
+  const matchesAgent = (playerAgent) => {
+    if(!myAgentName) return false;
+    if(!playerAgent) return false;
+    const pa = playerAgent.toLowerCase().trim();
+    const ma = myAgentName.toLowerCase().trim();
+    return pa===ma || pa.includes(ma.split(" ")[0]) || ma.includes(pa.split(" ")[0]);
+  };
+
+  const matchesAgentName = (playerAgent, agentName) => {
+    if(!agentName||!playerAgent) return false;
+    const pa = playerAgent.toLowerCase().trim();
+    const an = agentName.toLowerCase().trim();
+    return pa===an || pa.includes(an.split(" ")[0]) || an.includes(pa.split(" ")[0]);
+  };
+
+  const visiblePlayers = isAdmin ? players : players.filter(p=>matchesAgent(p.agent));
+  const visibleLeads = isAdmin ? leads : leads.filter(l=>{
+    if(!l.referred_by) return false;
+    const rb = l.referred_by.toLowerCase().trim();
+    const ma = (myAgentName||"").toLowerCase().trim();
+    return rb===ma || rb.includes(ma.split(" ")[0]) || ma.split(" ")[0].includes(rb.split(" ")[0]);
+  });
 
   const filtered=useMemo(()=>visiblePlayers.filter(p=>{ const s=search.toLowerCase(); return (p.name.toLowerCase().includes(s)||p.university?.toLowerCase().includes(s)||p.nationality?.toLowerCase().includes(s))&&(fSport==="Todos"||p.sport===fSport)&&(fStatus==="Todos"||p.status===fStatus)&&(fAgent==="Todos"||p.agent===fAgent); }),[visiblePlayers,search,fSport,fStatus,fAgent]);
 
@@ -2148,28 +2174,54 @@ export default function App() {
             <div>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10 }}>
                 <div><h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>Equipo</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>CEOs y Reclutadores · {agents.length} miembros</p></div>
-                {isAdmin&&<button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo miembro</button>}
+                {isAdmin&&<button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo miembro</button>}
               </div>
+
+              {/* Team overview stats — CEOs only */}
+              {isAdmin&&<div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 }}>
+                <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center" }}>
+                  <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Total atletas</div>
+                  <div style={{ fontSize:22,fontWeight:800,color:"#1a1a2e" }}>{players.length}</div>
+                </div>
+                <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center" }}>
+                  <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Total leads</div>
+                  <div style={{ fontSize:22,fontWeight:800,color:"#6366f1" }}>{leads.length}</div>
+                </div>
+                <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center" }}>
+                  <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Revenue total</div>
+                  <div style={{ fontSize:22,fontWeight:800,color:"#10b981" }}>{(players.reduce((s,p)=>s+(p.totalFee||2700),0)/1000).toFixed(1)}k€</div>
+                </div>
+                <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center" }}>
+                  <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Reclutadores</div>
+                  <div style={{ fontSize:22,fontWeight:800,color:"#8b5cf6" }}>{agentProfiles.filter(p=>p.role==="recruiter").length}</div>
+                </div>
+              </div>}
 
               {/* CRM Access management — admin only */}
               {isAdmin&&agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").length>0&&(
-                <Card style={{ padding:"18px 20px",marginBottom:16,border:"1px solid rgba(245,158,11,0.12)" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>🔐 Accesos de Reclutadores</div>
+                <Card style={{ padding:"18px 20px",marginBottom:16,border:"1px solid #e8e3db" }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#1a1a2e",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>Accesos de Reclutadores</div>
                   <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                    {agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(ap=>(
-                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#faf8f5",borderRadius:10,border:"1px solid #ede8e0" }}>
-                        <div style={{ width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f188,#6366f1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff" }}>{(ap.name||ap.email||"?")[0].toUpperCase()}</div>
+                    {agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(ap=>{
+                      const apStats = { players:players.filter(p=>matchesAgentName(p.agent,ap.name)).length, leads:leads.filter(l=>l.referred_by&&l.referred_by.toLowerCase().includes((ap.name||"").split(" ")[0].toLowerCase())).length };
+                      return (
+                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:"#faf8f5",borderRadius:10,border:"1px solid #ede8e0" }}>
+                        <div style={{ width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff" }}>{(ap.name||ap.email||"?")[0].toUpperCase()}</div>
                         <div style={{ flex:1,minWidth:0 }}>
                           <div style={{ fontSize:13,fontWeight:600,color:"#1a1a2e" }}>{ap.name||ap.email}</div>
-                          <div style={{ fontSize:11,color:"#4b5563" }}>{ap.email} · {ap.role}</div>
+                          <div style={{ fontSize:11,color:"#6b7280",marginTop:1 }}>{ap.email}</div>
                         </div>
-                        <div style={{ display:"flex",gap:5 }}>
-                          <button onClick={()=>setPermModal(ap)} style={{ padding:"5px 10px",borderRadius:7,border:"1px solid rgba(99,102,241,0.25)",background:"rgba(99,102,241,0.08)",color:"#818cf8",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>⚙️ Permisos</button>
+                        <div style={{ display:"flex",gap:12,fontSize:12,color:"#6b7280" }}>
+                          <span><strong style={{ color:"#1a1a2e" }}>{apStats.players}</strong> atletas</span>
+                          <span><strong style={{ color:"#6366f1" }}>{apStats.leads}</strong> leads</span>
                         </div>
+                        <button onClick={()=>setPermModal(ap)} style={{ padding:"6px 12px",borderRadius:7,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Permisos</button>
                       </div>
-                    ))}
+                    );})}
                   </div>
-                  <div style={{ marginTop:10,fontSize:11,color:"#4b5563" }}>Los agentes acceden con su Gmail en: <span style={{ color:"#818cf8" }}>{window.location.origin}</span></div>
+                  <div style={{ marginTop:12,padding:"10px 14px",background:"#f5f0e8",borderRadius:8,fontSize:12,color:"#6b7280" }}>
+                    Los reclutadores acceden con su Gmail en: <strong style={{ color:"#6366f1" }}>{window.location.origin}</strong>
+                  </div>
                 </Card>
               )}
 

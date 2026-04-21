@@ -38,6 +38,20 @@ export const TasksPanel = ({ leadId, playerId, agentNames, currentUser }) => {
     };
     const {error} = await supabase.from("tasks").insert(payload);
     if(error) { alert(`Error al guardar tarea: ${error.message}`); setSaving(false); return; }
+
+    // Send email to assigned person if different from current user
+    if(form.assigned_to && form.assigned_to !== currentUser) {
+      fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          type:"calendar_invite",
+          to: "futboluagency@gmail.com", // CEO always gets notified
+          eventTitle:`Nueva tarea asignada: ${form.title}`,
+          eventDate: form.due_date||new Date().toISOString().split("T")[0],
+          body:`Tarea: ${form.title}\nAsignada a: ${form.assigned_to}\nPrioridad: ${form.priority}\nNotas: ${form.notes||"—"}`,
+          senderName: currentUser||"Sistema"
+        })
+      }).catch(()=>{});
+    }
     setForm({ title:"", due_date:"", assigned_to:"", priority:"normal", notes:"" });
     setShowForm(false);
     await load();

@@ -9,6 +9,9 @@ import { CalendarView } from "./Calendar";
 import { RecruiterDashboard } from "./RecruiterDashboard";
 import { TasksPanel, TasksDashboard } from "./Tasks";
 import { AvailabilityManager, BookingPage } from "./Booking";
+import { Pipeline } from "./Pipeline";
+import { GlobalSearch } from "./GlobalSearch";
+import { NotificationBell, createNotification } from "./Notifications";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -874,6 +877,9 @@ const LeadForm = () => {
         referred_by:form.referred_by||null,
       });
       if(err) throw err;
+      // Notify CEOs
+      await createNotification("futboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality} · ${form.referred_by?"Ref: "+form.referred_by:"Sin referido"}`, "lead");
+      await createNotification("ignaciofutboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality}`, "lead");
       setSubmitted(true);
     } catch(e){ setError("Error submitting. Please try again."); }
     setSubmitting(false);
@@ -1863,6 +1869,7 @@ export default function App() {
   const go=(n)=>{ setNav(n); setSelected(null); setMenuOpen(false); };
   const allNavItems=[
     {id:"dashboard",l:"Dashboard",icon:I.dash,perm:"view_dashboard"},
+    {id:"pipeline",l:"Pipeline",icon:I.players,perm:"view_leads"},
     {id:"players",l:"Jugadores",icon:I.players,perm:"view_players"},
     {id:"leads",l:"Leads",icon:I.players,perm:"view_leads"},
     {id:"offers",l:"Universidades",icon:I.uni,perm:"view_offers"},
@@ -1877,7 +1884,7 @@ export default function App() {
     {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
   ];
   const navItems = isLatamDirector
-    ? allNavItems.filter(i=>["dashboard","players","leads","offers","coaches","earnings","calendar","reuniones","latam"].includes(i.id))
+    ? allNavItems.filter(i=>["dashboard","pipeline","players","leads","offers","coaches","earnings","calendar","reuniones","latam"].includes(i.id))
     : allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link
@@ -1994,8 +2001,10 @@ export default function App() {
         {/* Main */}
         <div className="main-pad" style={{ flex:1,overflowY:"auto",padding:"0" }}>
           {/* Top header bar with logo centered */}
-          <div style={{ background:"#ffffff",borderBottom:"1px solid #e8e3db",padding:"0 32px",height:56,display:"flex",alignItems:"center",justifyContent:"center",position:"sticky",top:0,zIndex:50,boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ background:"#ffffff",borderBottom:"1px solid #e8e3db",padding:"0 24px",height:56,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:50,boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
             <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:34,objectFit:"contain" }}/>
+            <GlobalSearch players={visiblePlayers} leads={visibleLeads} agents={agents} onSelectPlayer={p=>{ setSelected(p); setNav("players"); }} onSelectLead={l=>{ setSelectedLead(l); }} onNavigate={id=>setNav(id)}/>
+            <NotificationBell userEmail={user?.email}/>
           </div>
           <div style={{ padding:"24px 28px" }}>
 
@@ -2110,6 +2119,9 @@ export default function App() {
             </div>
           )}
           {nav==="players"&&selected&&<PlayerDetail player={selected} onBack={()=>setSelected(null)} onRefresh={loadAll} agentList={agentNames} onGenerateToken={generateAthleteToken}/>}
+
+          {/* PIPELINE */}
+          {nav==="pipeline"&&<Pipeline leads={visibleLeads} players={visiblePlayers} onLeadClick={l=>setSelectedLead(l)} onPlayerClick={p=>{ setSelected(p); setNav("players"); }} onRefresh={loadAll} isAdmin={isAdmin} myAgentName={myAgentName}/>}
 
           {/* LEADS */}
           {nav==="leads"&&(

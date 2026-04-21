@@ -36,7 +36,8 @@ export const TasksPanel = ({ leadId, playerId, agentNames, currentUser }) => {
       lead_id: leadId||null,
       player_id: playerId||null,
     };
-    await supabase.from("tasks").insert(payload);
+    const {error} = await supabase.from("tasks").insert(payload);
+    if(error) { alert(`Error al guardar tarea: ${error.message}`); setSaving(false); return; }
     setForm({ title:"", due_date:"", assigned_to:"", priority:"normal", notes:"" });
     setShowForm(false);
     await load();

@@ -6,8 +6,11 @@ const transporter = nodemailer.createTransport({
   secure: false,
   auth: {
     user: "futboluagency@gmail.com",
-    pass: "vdnf qcha qmmm otcd",
+    pass: process.env.GMAIL_PASS || "vdnf qcha qmmm otcd",
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 const buildHtml = (title, content, cta) => `
@@ -26,6 +29,23 @@ const buildHtml = (title, content, cta) => `
 </div>`;
 
 module.exports = async (req, res) => {
+  // Allow CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+
+  // GET — test endpoint
+  if (req.method === "GET") {
+    return res.status(200).json({ 
+      status: "ok", 
+      message: "Email API funcionando",
+      gmail: "futboluagency@gmail.com",
+      hasPass: !!(process.env.GMAIL_PASS)
+    });
+  }
+
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { type, to, subject, body, athleteName, profileUrl, coachName, eventTitle, eventDate, eventTime, senderName } = req.body;

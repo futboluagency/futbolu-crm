@@ -182,7 +182,14 @@ export const AvailabilityManager = ({ profile }) => {
   const addSlot = async () => {
     if(!form.date||!form.start_time) return;
     setSaving(true);
-    await supabase.from("availability_slots").insert({ ...form, booked:false });
+    const {error} = await supabase.from("availability_slots").insert({ 
+      date: form.date,
+      start_time: form.start_time,
+      end_time: form.end_time,
+      title: form.title||"Llamada con FUTBOLUAGENCY",
+      booked: false 
+    });
+    if(error) { alert(`Error: ${error.message}`); setSaving(false); return; }
     setForm(f=>({...f, date:"", start_time:"10:00", end_time:"11:00"}));
     await load();
     setSaving(false);

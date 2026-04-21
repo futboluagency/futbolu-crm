@@ -848,13 +848,13 @@ const AgentLinkRow = ({ agent, link, IcCopy }) => {
 // ─── PUBLIC PLAYER PAGE (for coaches) ────────────────────────────────────────
 // ─── PUBLIC LEAD FORM ─────────────────────────────────────────────────────────
 const LeadForm = () => {
-  const SPORTS_LIST = ["Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
+  const SPORTS_LIST = ["Soccer","Tennis","Golf","Volleyball","Track & Field"];
   const [form,setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",sport:"Soccer",position:"",height:"",weight:"",gpa:"",sat_score:"",toefl_score:"",english_level:"B2",high_school:"",graduation_year:"",major:"",scholarship_pct:"",budget:"",fafsa:false,video_url:"",instagram:"",notes:"",referred_by:"" });
   const [submitting,setSubmitting] = useState(false);
   const [submitted,setSubmitted] = useState(false);
   const [error,setError] = useState("");
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const inp = { background:"#e8e3db",border:"1px solid rgba(255,255,255,0.1)",borderRadius:9,padding:"11px 14px",color:"#1a1a2e",fontSize:14,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
+  const inp = { background:"#f9f7f4",border:"1px solid #e5e0d8",borderRadius:9,padding:"11px 14px",color:"#1a1a2e",fontSize:14,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
   const lbl = { fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block" };
 
   const submit = async () => {
@@ -929,11 +929,11 @@ const LeadForm = () => {
               {/* Sport selector */}
               <div style={{ gridColumn:"1/-1" }}>
                 <label style={lbl}>Sport</label>
-                <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8 }}>
+                <div style={{ display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8 }}>
                   {SPORTS_LIST.map(s=>(
-                    <div key={s} onClick={()=>{ set("sport",s); set("position",""); }} style={{ padding:"10px 8px",borderRadius:9,border:`2px solid ${form.sport===s?"#6366f1":"rgba(255,255,255,0.07)"}`,background:form.sport===s?"rgba(99,102,241,0.12)":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center" }}>
-                      <div style={{ fontSize:16,marginBottom:4 }}>{{ Soccer:"⚽",Tennis:"🎾",Swimming:"🏊",Baseball:"⚾",Basketball:"🏀","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[s]||"🎯"}</div>
-                      <div style={{ fontSize:11,fontWeight:600,color:form.sport===s?"#818cf8":"#9ca3af" }}>{s}</div>
+                    <div key={s} onClick={()=>{ set("sport",s); set("position",""); }} style={{ padding:"10px 8px",borderRadius:9,border:`2px solid ${form.sport===s?"#6366f1":"#e8e3db"}`,background:form.sport===s?"rgba(99,102,241,0.08)":"#fff",cursor:"pointer",textAlign:"center" }}>
+                      <div style={{ fontSize:16,marginBottom:4 }}>{{ Soccer:"⚽",Tennis:"🎾","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[s]||"🎯"}</div>
+                      <div style={{ fontSize:11,fontWeight:600,color:form.sport===s?"#6366f1":"#9ca3af" }}>{s}</div>
                     </div>
                   ))}
                 </div>

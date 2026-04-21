@@ -56,30 +56,53 @@ export const CalendarView = ({ profile, isAdmin, agentProfiles, players, leads }
   const saveEvent = async () => {
     if(!form.title||!form.date) return;
     setSending(true);
+
     try {
       const color = EVENT_TYPES.find(t=>t.id===form.type)?.color||"#6366f1";
-      const { id, ...rest } = form;
+      const { id, notify_email, ...rest } = form;
 
-      // Clean empty strings to null for UUID fields
+      // Extract just the name from "Name (email)" format
+      const cleanName = (rest.assigned_name||"").split("(")[0].trim()||null;
+
+      // Only keep valid UUID fields — null if empty string
       const payload = {
-        ...rest,
+        title: rest.title,
+        description: rest.description||null,
+        date: rest.date,
+        start_time: rest.start_time||null,
+        end_time: rest.end_time||null,
+        type: rest.type||"call",
         color,
-        user_id: profile?.user_id||null,
+        attendees: rest.attendees||null,
+        assigned_name: cleanName,
+        assigned_to: rest.assigned_to||null,
         lead_id: rest.lead_id||null,
         player_id: rest.player_id||null,
-        assigned_to: rest.assigned_to||null,
-        assigned_name: rest.assigned_name||null,
       };
 
+      let dbError;
       if(form.id){
-        const {error} = await supabase.from("calendar_events").update(payload).eq("id",form.id);
-        if(error) throw error;
+        const res = await supabase.from("calendar_events").update(payload).eq("id",form.id);
+        dbError = res.error;
       } else {
-        const {error} = await supabase.from("calendar_events").insert(payload);
-        if(error) throw error;
+        const res = await supabase.from("calendar_events").insert(payload);
+        dbError = res.error;
       }
 
-      // Always send email to CEO
+      if(dbError) {
+        alert(`Error Supabase: ${dbError.message}`);
+        setSending(false);
+        return;
+      }
+
+      // Reload calendar immediately
+      await loadEvents();
+      setSent(true);
+      setModal(null);
+      resetForm();
+      setTimeout(()=>setSent(false), 2000);
+
+      // Send emails in background — never block the save
       const CEO_EMAIL = "futboluagency@gmail.com";
       const emailData = {
         eventTitle: form.title,
@@ -89,40 +112,40 @@ export const CalendarView = ({ profile, isAdmin, agentProfiles, players, leads }
         senderName: profile?.name||"CEO",
       };
 
-      // Send to CEO always
-      sendEmailNotification("calendar_invite", CEO_EMAIL, emailData);
+      // Find recruiter email from agentProfiles
+      const assignedProfile = cleanName
+        ? (agentProfiles||[]).find(p=>p.name===cleanName||p.email===cleanName)
+        : null;
 
-      // Send to assigned recruiter if different from CEO
-      if(form.assigned_name && form.assigned_name!=="all") {
-        const assignedProfile = (agentProfiles||[]).find(p=>p.name===form.assigned_name);
-        if(assignedProfile?.email && assignedProfile.email!==CEO_EMAIL) {
-          sendEmailNotification("calendar_invite", assignedProfile.email, emailData);
-        }
-      }
-
-      // Send to ALL recruiters if "all" selected
+      const emailTargets = new Set([CEO_EMAIL]);
+      if(assignedProfile?.email) emailTargets.add(assignedProfile.email);
       if(form.assigned_name==="all") {
-        const recruiters = (agentProfiles||[]).filter(p=>p.role==="recruiter"&&p.email);
-        recruiters.forEach(r => sendEmailNotification("calendar_invite", r.email, emailData));
+        (agentProfiles||[]).filter(p=>p.role==="recruiter"&&p.email).forEach(r=>emailTargets.add(r.email));
       }
 
-      // Send to lead if linked
+      emailTargets.forEach(email => {
+        fetch("/api/send-email", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ type:"calendar_invite", to:email, ...emailData })
+        }).catch(e=>console.log("Email failed (non-blocking):", e));
+      });
+
+      // Email to lead if linked
       if(form.lead_id) {
         const lead = (leads||[]).find(l=>l.id===form.lead_id);
         if(lead?.email) {
-          sendEmailNotification("lead_meeting", lead.email, {
-            ...emailData,
-            eventTitle: `Reunion contigo: ${form.title}`,
-          });
+          fetch("/api/send-email", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ type:"lead_meeting", to:lead.email, ...emailData, eventTitle:`Reunion: ${form.title}` })
+          }).catch(()=>{});
         }
       }
 
-      await loadEvents();
-      setSent(true);
-      setTimeout(()=>{ setSent(false); setModal(null); resetForm(); }, 1500);
     } catch(e) {
-      console.error("Error saving event:", e);
-      alert(`Error al guardar: ${e.message||"intenta de nuevo"}`);
+      console.error("Unexpected error:", e);
+      alert(`Error inesperado: ${e.message}`);
     }
     setSending(false);
   };

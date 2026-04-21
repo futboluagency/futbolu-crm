@@ -1474,7 +1474,7 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
     const {error} = await supabase.from("lead_messages").insert({ 
       lead_id: lead.id, 
       sender_name: profile?.name||"CEO", 
-      sender_role: isAdmin?"CEO":isLatamDirector?"Director LATAM":"Reclutador", 
+      sender_role: isAdmin?"CEO":profile?.role==="latam_director"?"Director LATAM":"Reclutador", 
       message: newMsg.trim() 
     });
     if(error) { alert(`Error: ${error.message}`); setSending(false); return; }

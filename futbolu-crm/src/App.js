@@ -1471,7 +1471,13 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
   const sendMessage = async () => {
     if(!newMsg.trim()) return;
     setSending(true);
-    await supabase.from("lead_messages").insert({ lead_id:lead.id, sender_name:profile?.name||"CEO", sender_role:isAdmin?"CEO":"Reclutador", message:newMsg.trim() });
+    const {error} = await supabase.from("lead_messages").insert({ 
+      lead_id: lead.id, 
+      sender_name: profile?.name||"CEO", 
+      sender_role: isAdmin?"CEO":isLatamDirector?"Director LATAM":"Reclutador", 
+      message: newMsg.trim() 
+    });
+    if(error) { alert(`Error: ${error.message}`); setSending(false); return; }
     setNewMsg("");
     await loadMessages();
     setSending(false);
@@ -1479,7 +1485,12 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
 
   const saveFollowUp = async () => {
     setSavingFollow(true);
-    await supabase.from("leads").update({ follow_up_status:followUpStatus, follow_up_date:followUpDate||null, follow_up_notes:followUpNotes }).eq("id",lead.id);
+    const {error} = await supabase.from("leads").update({ 
+      follow_up_status: followUpStatus, 
+      follow_up_date: followUpDate||null, 
+      follow_up_notes: followUpNotes 
+    }).eq("id", lead.id);
+    if(error) { alert(`Error: ${error.message}`); setSavingFollow(false); return; }
     await onRefresh();
     setSavingFollow(false);
   };

@@ -1730,6 +1730,21 @@ const PermissionsModal = ({ agentProfile, onClose, onSave }) => {
 };
 
 export default function App() {
+  // Check public routes BEFORE any auth — prevents auth loading from blocking public pages
+  const urlParams = new URLSearchParams(window.location.search);
+  const isBooking = urlParams.get("booking");
+  const isLeadForm = urlParams.get("form");
+  const athleteToken = urlParams.get("athlete");
+  const publicPlayerId = urlParams.get("player");
+  if(isBooking) return <BookingPage/>;
+  if(isLeadForm) return <LeadForm/>;
+  if(athleteToken) return <AthletePortal token={athleteToken}/>;
+  if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
+
+  return <AppInner/>;
+}
+
+function AppInner() {
   const { user, profile, loading:authLoading, isAdmin, isLatamDirector, signOut, can, updatePermissions } = useAuth();
   const [agentProfiles, setAgentProfiles] = useState([]);
   const [permModal, setPermModal] = useState(null);
@@ -1889,16 +1904,6 @@ export default function App() {
 
   // Greeting for agent link
   const agentObj=currentAgent?agents.find(a=>a.name===currentAgent||a.name.toLowerCase().includes(currentAgent.toLowerCase())):null;
-
-  // Public player profile — show only the athlete page, no CRM access
-  const publicPlayerId = new URLSearchParams(window.location.search).get("player");
-  const isLeadForm = new URLSearchParams(window.location.search).get("form");
-  const athleteToken = new URLSearchParams(window.location.search).get("athlete");
-  const isBooking = new URLSearchParams(window.location.search).get("booking");
-  if(isLeadForm) return <LeadForm/>;
-  if(isBooking) return <BookingPage token={isBooking}/>;
-  if(athleteToken) return <AthletePortal token={athleteToken}/>;
-  if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
 
   // Auth check — show login if not authenticated
   if(authLoading) return (

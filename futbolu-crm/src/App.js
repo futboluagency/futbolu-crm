@@ -12,6 +12,7 @@ import { AvailabilityManager, BookingPage } from "./Booking";
 import { Pipeline } from "./Pipeline";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell, createNotification } from "./Notifications";
+import { TeamChat } from "./TeamChat";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -861,27 +862,46 @@ const LeadForm = () => {
   const lbl = { fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block" };
 
   const submit = async () => {
-    if(!form.name.trim()||!form.email.trim()){ setError("Please enter your name and email."); return; }
+    if(!form.name.trim()||!form.email.trim()){ setError("Por favor introduce tu nombre y email."); return; }
     setSubmitting(true); setError("");
     try {
-      const {error:err} = await supabase.from("leads").insert({
-        name:form.name, email:form.email, phone:form.phone, nationality:form.nationality,
-        age:parseInt(form.age)||null, sport:form.sport, position:form.position,
-        height:parseFloat(form.height)||null, weight:parseFloat(form.weight)||null,
-        gpa:parseFloat(form.gpa)||null, sat_score:parseInt(form.sat_score)||null,
-        toefl_score:parseInt(form.toefl_score)||null, english_level:form.english_level,
-        high_school:form.high_school, graduation_year:parseInt(form.graduation_year)||null,
-        major:form.major, scholarship_pct:parseInt(form.scholarship_pct)||null,
-        budget:parseFloat(form.budget)||null, fafsa:form.fafsa,
-        video_url:form.video_url, instagram:form.instagram, notes:form.notes,
-        referred_by:form.referred_by||null,
-      });
-      if(err) throw err;
-      // Notify CEOs
-      await createNotification("futboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality} · ${form.referred_by?"Ref: "+form.referred_by:"Sin referido"}`, "lead");
-      await createNotification("ignaciofutboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality}`, "lead");
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone||null,
+        nationality: form.nationality||null,
+        age: parseInt(form.age)||null,
+        sport: form.sport,
+        position: form.position||null,
+        height: parseFloat(form.height)||null,
+        weight: parseFloat(form.weight)||null,
+        gpa: parseFloat(form.gpa)||null,
+        sat_score: parseInt(form.sat_score)||null,
+        toefl_score: parseInt(form.toefl_score)||null,
+        english_level: form.english_level||null,
+        high_school: form.high_school||null,
+        graduation_year: parseInt(form.graduation_year)||null,
+        major: form.major||null,
+        scholarship_pct: parseInt(form.scholarship_pct)||null,
+        budget: parseFloat(form.budget)||null,
+        fafsa: form.fafsa||false,
+        video_url: form.video_url||null,
+        instagram: form.instagram||null,
+        notes: form.notes||null,
+        referred_by: form.referred_by||null,
+        status: "Prospect",
+      };
+      const {error:err} = await supabase.from("leads").insert(payload);
+      if(err) { setError(`Error: ${err.message}`); setSubmitting(false); return; }
+      // Notify CEOs in background
+      createNotification("futboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality||""}${form.referred_by?" · Ref: "+form.referred_by:""}`, "lead").catch(()=>{});
+      createNotification("ignaciofutboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality||""}`, "lead").catch(()=>{});
+      // Email to CEO
+      fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ type:"calendar_invite", to:"futboluagency@gmail.com", eventTitle:`Nuevo lead: ${form.name}`, eventDate:new Date().toISOString().split("T")[0], body:`Deporte: ${form.sport}\nNacionalidad: ${form.nationality||"—"}\nEmail: ${form.email}\nReferido por: ${form.referred_by||"—"}`, senderName:"Formulario web" })
+      }).catch(()=>{});
       setSubmitted(true);
-    } catch(e){ setError("Error submitting. Please try again."); }
+    } catch(e){ setError(`Error inesperado: ${e.message}`); }
     setSubmitting(false);
   };
 
@@ -1894,12 +1914,13 @@ function AppInner() {
     {id:"analytics",l:"Analiticas",icon:I.dash,perm:"view_payments"},
     {id:"calendar",l:"Calendario",icon:I.dash,perm:"view_dashboard"},
     {id:"reuniones",l:"Reuniones",icon:I.dash,perm:"view_dashboard"},
+    {id:"chat",l:"Chat equipo",icon:I.team,perm:"view_dashboard"},
     {id:"fua-sports",l:"FUA Sports",icon:I.team,perm:"view_team"},
     {id:"latam",l:"LATAM",icon:I.team,perm:"view_team"},
     {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
   ];
   const navItems = isLatamDirector
-    ? allNavItems.filter(i=>["dashboard","pipeline","players","leads","offers","coaches","earnings","calendar","reuniones","latam"].includes(i.id))
+    ? allNavItems.filter(i=>["dashboard","pipeline","players","leads","offers","coaches","earnings","calendar","reuniones","chat","latam"].includes(i.id))
     : allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link
@@ -2581,6 +2602,9 @@ function AppInner() {
 
           {/* REUNIONES */}
           {nav==="reuniones"&&<AvailabilityManager profile={profile}/>}
+
+          {/* CHAT EQUIPO */}
+          {nav==="chat"&&<TeamChat profile={profile} isAdmin={isAdmin||isLatamDirector}/>}
 
           </div>{/* end padding div */}
         </div>

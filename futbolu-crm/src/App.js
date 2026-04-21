@@ -7,6 +7,8 @@ import { Analytics } from "./Analytics";
 import { ALL_UNIVERSITIES, getAllUniversities } from "./Universities";
 import { CalendarView } from "./Calendar";
 import { RecruiterDashboard } from "./RecruiterDashboard";
+import { TasksPanel, TasksDashboard } from "./Tasks";
+import { AvailabilityManager, BookingPage } from "./Booking";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SPORTS = ["All","Soccer","Tennis","Swimming","Baseball","Basketball","Track & Field","Golf","Volleyball"];
@@ -65,17 +67,22 @@ const PhotoUpload = ({ currentUrl, onUpload, size=80 }) => {
   const ref=useRef(); const [uploading,setUploading]=useState(false); const [preview,setPreview]=useState(null);
   const upload = async (e) => {
     const file=e.target.files[0]; if(!file) return;
-    setUploading(true); setPreview(URL.createObjectURL(file));
-    const filename=`${Date.now()}.${file.name.split(".").pop()}`;
-    const {error}=await supabase.storage.from("avatars").upload(filename,file,{upsert:true});
-    if(!error) onUpload(filename); setUploading(false);
+    setPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const filename=`${Date.now()}.${file.name.split(".").pop()}`;
+      const {error}=await supabase.storage.from("avatars").upload(filename,file,{upsert:true});
+      if(!error) onUpload(filename);
+      else console.warn("Photo upload failed (non-blocking):", error.message);
+    } catch(e) { console.warn("Photo upload error:", e); }
+    setUploading(false);
   };
   const url=preview||getPhotoUrl(currentUrl);
   return (
     <div style={{ position:"relative",width:size,height:size,cursor:"pointer",flexShrink:0 }} onClick={()=>ref.current.click()}>
-      {url?<img src={url} alt="" style={{ width:size,height:size,borderRadius:"50%",objectFit:"cover",border:"3px solid rgba(99,102,241,0.4)" }}/>
-          :<div style={{ width:size,height:size,borderRadius:"50%",background:"#f0ebe3",border:"2px dashed rgba(99,102,241,0.3)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontSize:11,color:"#6b7280",gap:3 }}><span style={{ fontSize:18 }}>📷</span><span>Foto</span></div>}
-      <div style={{ position:"absolute",bottom:2,right:2,width:20,height:20,background:"#6366f1",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10 }}>{uploading?"⏳":"✏️"}</div>
+      {url?<img src={url} alt="" style={{ width:size,height:size,borderRadius:"50%",objectFit:"cover",border:"3px solid #e8e3db" }}/>
+          :<div style={{ width:size,height:size,borderRadius:"50%",background:"#f0ebe3",border:"2px dashed #d1cfc7",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontSize:11,color:"#9ca3af",gap:3 }}><span style={{ fontSize:18 }}>+</span><span>Foto</span></div>}
+      <div style={{ position:"absolute",bottom:2,right:2,width:20,height:20,background:uploading?"#f59e0b":"#6366f1",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff" }}>{uploading?"...":"✏"}</div>
       <input ref={ref} type="file" accept="image/*" style={{ display:"none" }} onChange={upload}/>
     </div>
   );
@@ -392,16 +399,16 @@ const AgentModal = ({ initial, onClose, onSave }) => {
       await onSave(form); 
       onClose(); 
     } catch(e) { 
-      console.error(e); 
-      alert("Error al guardar: " + e.message); 
+      console.error(e);
+      const msg = e?.message||JSON.stringify(e)||"Error desconocido";
+      alert("Error al guardar: " + msg);
     }
     setSaving(false); 
   };
   return (
     <Modal title={initial?"Editar miembro":"Nuevo miembro"} onClose={onClose} maxWidth={420}>
       <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-        <div style={{ display:"flex",alignItems:"center",gap:14 }}><PhotoUpload currentUrl={form.photoUrl} onUpload={u=>set("photoUrl",u)} size={72}/><div style={{ fontSize:12,color:"#6b7280" }}>Foto</div></div>
-        <div><label style={lbl}>Nombre completo</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Nombre..."/></div>
+        <div><label style={lbl}>Nombre completo *</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Nombre completo..."/></div>
         <div><label style={lbl}>Cargo / Rol</label>
           <select style={{ ...inp,cursor:"pointer" }} value={form.role} onChange={e=>set("role",e.target.value)}>
             <option value="Reclutador">Reclutador</option>
@@ -420,12 +427,15 @@ const AgentModal = ({ initial, onClose, onSave }) => {
             <option value="usa">USA</option>
           </select>
         </div>
-        <div><label style={lbl}>Email (Gmail para acceso al CRM)</label><input style={inp} type="email" value={form.email||""} onChange={e=>set("email",e.target.value)} placeholder="gmail@gmail.com"/></div>
-        <div><label style={lbl}>Telefono / WhatsApp</label><input style={inp} value={form.phone||""} onChange={e=>set("phone",e.target.value)}/></div>
+        <div><label style={lbl}>Email Gmail (para acceso al CRM)</label><input style={inp} type="email" value={form.email||""} onChange={e=>set("email",e.target.value)} placeholder="gmail@gmail.com"/></div>
+        <div><label style={lbl}>Telefono / WhatsApp</label><input style={inp} value={form.phone||""} onChange={e=>set("phone",e.target.value)} placeholder="+34 ..."/></div>
         <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:9,padding:"10px 14px",fontSize:12,color:"#6366f1" }}>
-          El miembro accede al CRM entrando con su Gmail en: <strong>{window.location.origin}</strong>
+          Accede al CRM con su Gmail en: <strong>{window.location.origin}</strong>
         </div>
-        <div style={{ display:"flex",gap:10,marginTop:6 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Guardando...":initial?"Guardar":"Crear"}</Btn></div></div>
+        <div style={{ display:"flex",gap:10,marginTop:6 }}>
+          <div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div>
+          <div style={{ flex:2 }}><Btn onClick={save} disabled={saving||!form.name.trim()}>{saving?"Guardando...":initial?"Guardar":"Crear miembro"}</Btn></div>
+        </div>
       </div>
     </Modal>
   );
@@ -1508,7 +1518,7 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
 
         {/* Tabs */}
         <div style={{ display:"flex",gap:2,padding:"10px 24px",borderBottom:"1px solid #f0ebe3",background:"#faf8f5" }}>
-          {[{id:"profile",l:"Perfil"},{id:"followup",l:"Seguimiento"},{id:"chat",l:`Chat (${messages.length})`}].map(t=>(
+          {[{id:"profile",l:"Perfil"},{id:"followup",l:"Seguimiento"},{id:"tasks",l:"Tareas"},{id:"chat",l:`Chat (${messages.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"7px 16px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t.id?"#fff":"none",color:tab===t.id?"#1a1a2e":"#6b7280",fontFamily:"inherit",boxShadow:tab===t.id?"0 1px 4px rgba(0,0,0,0.08)":"none" }}>{t.l}</button>
           ))}
         </div>
@@ -1568,7 +1578,23 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
             <button onClick={saveFollowUp} disabled={savingFollow} style={{ padding:"11px",borderRadius:10,border:"none",background:"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:savingFollow?0.7:1 }}>
               {savingFollow?"Guardando...":"Guardar seguimiento"}
             </button>
+            {/* Send booking link */}
+            <div style={{ marginTop:8,padding:"12px 14px",background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:10 }}>
+              <div style={{ fontSize:12,fontWeight:600,color:"#6366f1",marginBottom:8 }}>Enviar link de reunion al lead</div>
+              <div style={{ fontSize:11,color:"#6b7280",marginBottom:10 }}>El lead podra elegir un hueco de tu calendario para reunirse contigo</div>
+              <div style={{ display:"flex",gap:8 }}>
+                {lead.email&&<button onClick={async()=>{
+                  const bookingUrl=`${window.location.origin}?booking=1`;
+                  await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"lead_meeting",to:lead.email,eventTitle:"Agenda una reunion con FUTBOLUAGENCY",eventDate:"",eventTime:"",body:`Hola ${lead.name},\n\nTe enviamos el link para que puedas agendar una llamada con nosotros cuando mejor te venga.\n\nElige tu hueco aqui: ${bookingUrl}\n\nEstamos encantados de hablar contigo sobre tu beca deportiva.\n\nUn saludo,\nEquipo FUTBOLUAGENCY`})});
+                  alert(`Link enviado a ${lead.email}`);
+                }} style={{ flex:1,padding:"8px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>Enviar por email</button>}
+                <button onClick={()=>{ navigator.clipboard.writeText(`${window.location.origin}?booking=1`); alert("Link copiado"); }} style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>Copiar link</button>
+              </div>
+            </div>
           </div>}
+
+          {/* TASKS TAB */}
+          {tab==="tasks"&&<TasksPanel leadId={lead.id} agentNames={[]} currentUser={profile?.name}/>}
 
           {/* CHAT TAB */}
           {tab==="chat"&&<div>
@@ -1834,13 +1860,13 @@ export default function App() {
     {id:"earnings",l:"Ganancias",icon:I.fin,perm:"view_commissions"},
     {id:"analytics",l:"Analiticas",icon:I.dash,perm:"view_payments"},
     {id:"calendar",l:"Calendario",icon:I.dash,perm:"view_dashboard"},
+    {id:"reuniones",l:"Reuniones",icon:I.dash,perm:"view_dashboard"},
     {id:"fua-sports",l:"FUA Sports",icon:I.team,perm:"view_team"},
     {id:"latam",l:"LATAM",icon:I.team,perm:"view_team"},
     {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
   ];
-  // Miguel sees all sections relevant to LATAM
   const navItems = isLatamDirector
-    ? allNavItems.filter(i=>["dashboard","players","leads","offers","coaches","earnings","calendar","latam"].includes(i.id))
+    ? allNavItems.filter(i=>["dashboard","players","leads","offers","coaches","earnings","calendar","reuniones","latam"].includes(i.id))
     : allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link
@@ -1850,7 +1876,9 @@ export default function App() {
   const publicPlayerId = new URLSearchParams(window.location.search).get("player");
   const isLeadForm = new URLSearchParams(window.location.search).get("form");
   const athleteToken = new URLSearchParams(window.location.search).get("athlete");
+  const isBooking = new URLSearchParams(window.location.search).get("booking");
   if(isLeadForm) return <LeadForm/>;
+  if(isBooking) return <BookingPage token={isBooking}/>;
   if(athleteToken) return <AthletePortal token={athleteToken}/>;
   if(publicPlayerId) return <PublicPlayerPage playerId={publicPlayerId}/>;
 
@@ -1961,7 +1989,7 @@ export default function App() {
           <div style={{ padding:"24px 28px" }}>
 
           {/* DASHBOARD */}
-          {nav==="dashboard"&&!isAdmin&&<RecruiterDashboard profile={profile} players={visiblePlayers} leads={visibleLeads} commissions={commissions}/>}
+          {nav==="dashboard"&&!isAdmin&&<div><RecruiterDashboard profile={profile} players={visiblePlayers} leads={visibleLeads} commissions={commissions}/><div style={{ marginTop:14 }}><TasksDashboard agentName={profile?.name} isAdmin={false} players={visiblePlayers} leads={visibleLeads}/></div></div>}
           {nav==="dashboard"&&isAdmin&&(
             <div>
               <div style={{ marginBottom:20 }}>
@@ -2012,6 +2040,10 @@ export default function App() {
                       ))}
                     </div>}
                 </Card>
+              </div>
+              {/* Tasks widget */}
+              <div style={{ marginTop:14 }}>
+                <TasksDashboard agentName={profile?.name} isAdmin={isAdmin} players={visiblePlayers} leads={visibleLeads}/>
               </div>
             </div>
           )}
@@ -2518,6 +2550,9 @@ export default function App() {
 
           {/* CALENDAR */}
           {nav==="calendar"&&<CalendarView profile={profile} isAdmin={isAdmin} agentProfiles={agentProfiles} players={visiblePlayers} leads={visibleLeads}/>}
+
+          {/* REUNIONES */}
+          {nav==="reuniones"&&<AvailabilityManager profile={profile}/>}
 
           </div>{/* end padding div */}
         </div>

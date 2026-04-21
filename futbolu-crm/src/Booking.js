@@ -21,15 +21,17 @@ export const BookingPage = () => {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await supabase
-      .from("availability_slots")
-      .select("*")
-      .eq("booked", false)
-      .gte("date", today)
-      .order("date")
-      .order("start_time");
-    if(!error) setSlots(data||[]);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .eq("booked", false)
+        .gte("date", today)
+        .order("date")
+        .order("start_time");
+      if(!error) setSlots(data||[]);
+    } catch(e) { console.error(e); }
     setLoading(false);
   };
 

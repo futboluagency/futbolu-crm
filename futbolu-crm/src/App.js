@@ -853,255 +853,165 @@ const AgentLinkRow = ({ agent, link, IcCopy }) => {
 // ─── PUBLIC LEAD FORM ─────────────────────────────────────────────────────────
 const LeadForm = () => {
   const SPORTS_LIST = ["Soccer","Tennis","Golf","Volleyball","Track & Field"];
-  const [form,setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",sport:"Soccer",position:"",height:"",weight:"",gpa:"",sat_score:"",toefl_score:"",english_level:"B2",high_school:"",graduation_year:"",major:"",scholarship_pct:"",budget:"",fafsa:false,video_url:"",instagram:"",notes:"",referred_by:"" });
-  const [submitting,setSubmitting] = useState(false);
-  const [submitted,setSubmitted] = useState(false);
-  const [error,setError] = useState("");
+  const [step, setStep] = useState(1); // 3 steps
+  const [form, setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",instagram:"",referred_by:"",sport:"Soccer",position:"",height:"",weight:"",video_url:"",gpa:"",english_level:"B2",graduation_year:"",major:"",budget:"",scholarship_pct:"",notes:"" });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const inp = { background:"#f9f7f4",border:"1px solid #e5e0d8",borderRadius:9,padding:"11px 14px",color:"#1a1a2e",fontSize:14,width:"100%",outline:"none",boxSizing:"border-box",fontFamily:"inherit" };
-  const lbl = { fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block" };
+
+  const inp = { background:"#fff", border:"1px solid #e5e0d8", borderRadius:10, padding:"12px 16px", color:"#1a1a2e", fontSize:15, outline:"none", width:"100%", boxSizing:"border-box", fontFamily:"inherit" };
+  const lbl = { fontSize:12, fontWeight:600, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.8, marginBottom:6, display:"block" };
 
   const submit = async () => {
-    if(!form.name.trim()||!form.email.trim()){ setError("Por favor introduce tu nombre y email."); return; }
+    if(!form.name.trim()||!form.email.trim()) { setError("Nombre y email son obligatorios."); return; }
     setSubmitting(true); setError("");
-    try {
-      const payload = {
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone||null,
-        nationality: form.nationality||null,
-        age: parseInt(form.age)||null,
-        sport: form.sport,
-        position: form.position||null,
-        height: parseFloat(form.height)||null,
-        weight: parseFloat(form.weight)||null,
-        gpa: parseFloat(form.gpa)||null,
-        sat_score: parseInt(form.sat_score)||null,
-        toefl_score: parseInt(form.toefl_score)||null,
-        english_level: form.english_level||null,
-        high_school: form.high_school||null,
-        graduation_year: parseInt(form.graduation_year)||null,
-        major: form.major||null,
-        scholarship_pct: parseInt(form.scholarship_pct)||null,
-        budget: parseFloat(form.budget)||null,
-        fafsa: form.fafsa||false,
-        video_url: form.video_url||null,
-        instagram: form.instagram||null,
-        notes: form.notes||null,
-        referred_by: form.referred_by||null,
-        status: "Prospect",
-      };
-      const {error:err} = await supabase.from("leads").insert(payload);
-      if(err) { setError(`Error: ${err.message}`); setSubmitting(false); return; }
-      // Notify CEOs in background
-      createNotification("futboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality||""}${form.referred_by?" · Ref: "+form.referred_by:""}`, "lead").catch(()=>{});
-      createNotification("ignaciofutboluagency@gmail.com", `Nuevo lead: ${form.name}`, `${form.sport} · ${form.nationality||""}`, "lead").catch(()=>{});
-      // Email to CEO
-      fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ type:"calendar_invite", to:"futboluagency@gmail.com", eventTitle:`Nuevo lead: ${form.name}`, eventDate:new Date().toISOString().split("T")[0], body:`Deporte: ${form.sport}\nNacionalidad: ${form.nationality||"—"}\nEmail: ${form.email}\nReferido por: ${form.referred_by||"—"}`, senderName:"Formulario web" })
-      }).catch(()=>{});
-      setSubmitted(true);
-    } catch(e){ setError(`Error inesperado: ${e.message}`); }
+    const payload = {
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone||null,
+      nationality: form.nationality||null,
+      age: parseInt(form.age)||null,
+      sport: form.sport,
+      position: form.position||null,
+      height: parseFloat(form.height)||null,
+      weight: parseFloat(form.weight)||null,
+      gpa: parseFloat(form.gpa)||null,
+      english_level: form.english_level||null,
+      graduation_year: parseInt(form.graduation_year)||null,
+      major: form.major||null,
+      scholarship_pct: parseInt(form.scholarship_pct)||null,
+      budget: parseFloat(form.budget)||null,
+      video_url: form.video_url||null,
+      instagram: form.instagram||null,
+      notes: form.notes||null,
+      referred_by: form.referred_by||null,
+    };
+    const { error:err } = await supabase.from("leads").insert(payload);
+    if(err) { setError(`Error: ${err.message}`); setSubmitting(false); return; }
+    // Notify CEO by email in background
+    fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ type:"calendar_invite", to:"futboluagency@gmail.com", eventTitle:`Nuevo lead: ${form.name}`, eventDate:new Date().toISOString().split("T")[0], body:`Deporte: ${form.sport}\nNacionalidad: ${form.nationality||"—"}\nEmail: ${form.email}\nReferido por: ${form.referred_by||"—"}`, senderName:"Formulario web" })
+    }).catch(()=>{});
+    setSubmitted(true);
     setSubmitting(false);
   };
 
   if(submitted) return (
-    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#f5f0e8",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
-      <div style={{ textAlign:"center",maxWidth:400 }}>
-        <div style={{ fontSize:56,marginBottom:20 }}>🎉</div>
-        <h2 style={{ fontSize:24,fontWeight:800,color:"#1a1a2e",marginBottom:10 }}>Application Received!</h2>
-        <p style={{ fontSize:15,color:"#6b7280",lineHeight:1.6 }}>Thank you for your interest in FUTBOLUAGENCY. Our team will review your profile and get back to you soon.</p>
-        <div style={{ marginTop:24,padding:"16px 20px",background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.15)",borderRadius:12 }}>
-          <div style={{ fontSize:13,color:"#818cf8",fontWeight:600 }}>📱 WhatsApp: +34 603 331 990</div>
-          <div style={{ fontSize:13,color:"#818cf8",fontWeight:600,marginTop:4 }}>📧 futboluagency@gmail.com</div>
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif", background:"#f5f0e8", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ textAlign:"center", maxWidth:440, background:"#fff", borderRadius:20, padding:"40px 32px", boxShadow:"0 4px 24px rgba(0,0,0,0.08)" }}>
+        <div style={{ width:72, height:72, borderRadius:"50%", background:"linear-gradient(135deg,#6366f1,#10b981)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, margin:"0 auto 20px" }}>✓</div>
+        <h2 style={{ fontSize:24, fontWeight:800, color:"#1a1a2e", marginBottom:10 }}>Solicitud recibida</h2>
+        <p style={{ fontSize:15, color:"#6b7280", lineHeight:1.7, marginBottom:24 }}>Hemos recibido tu perfil. Nuestro equipo lo revisara y se pondra en contacto contigo pronto.</p>
+        <div style={{ background:"#f9f7f4", border:"1px solid #e8e3db", borderRadius:12, padding:"16px 20px" }}>
+          <div style={{ fontSize:13, color:"#374151", fontWeight:600 }}>futboluagency@gmail.com</div>
+          <div style={{ fontSize:13, color:"#374151", fontWeight:600, marginTop:4 }}>WhatsApp: +34 603 331 990</div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#f5f0e8",minHeight:"100vh",color:"#1a1a2e" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.07)}select option{background:#0f1117;color:#f9fafb}`}</style>
+    <div style={{ fontFamily:"'Inter',system-ui,sans-serif", background:"#f5f0e8", minHeight:"100vh" }}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}input,select,textarea{font-family:inherit}`}</style>
+
       {/* Header */}
-      <div style={{ background:"#ffffff",borderBottom:"1px solid rgba(255,255,255,0.05)",padding:"16px 24px",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-        <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:32,objectFit:"contain" }}/>
-        <div style={{ fontSize:12,color:"#374151",fontWeight:500 }}>Athlete Application Form</div>
+      <div style={{ background:"#fff", borderBottom:"1px solid #e8e3db", padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10 }}>
+        <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:30, objectFit:"contain" }}/>
+        <div style={{ fontSize:12, color:"#9ca3af", fontWeight:500 }}>Solicitud de beca deportiva</div>
       </div>
-      <div style={{ maxWidth:620,margin:"0 auto",padding:"32px 20px 60px" }}>
-        <div style={{ textAlign:"center",marginBottom:32 }}>
-          <h1 style={{ fontSize:26,fontWeight:800,color:"#1a1a2e",letterSpacing:-0.5,marginBottom:8 }}>Apply for a US Scholarship</h1>
-          <p style={{ fontSize:14,color:"#6b7280",lineHeight:1.6 }}>Fill out this form and our team will evaluate your profile to find the best university match for you.</p>
+
+      <div style={{ maxWidth:560, margin:"0 auto", padding:"32px 20px 80px" }}>
+        {/* Title */}
+        <div style={{ textAlign:"center", marginBottom:28 }}>
+          <h1 style={{ fontSize:26, fontWeight:800, color:"#1a1a2e", letterSpacing:-0.5, marginBottom:8 }}>Solicita tu beca deportiva</h1>
+          <p style={{ fontSize:14, color:"#6b7280", lineHeight:1.6 }}>Rellena el formulario y evaluamos tu perfil gratuitamente</p>
         </div>
 
-        <div style={{ display:"flex",flexDirection:"column",gap:22 }}>
-          {/* Personal */}
-          <div style={{ background:"#f5f0e8",borderRadius:14,padding:"22px 24px",border:"1px solid #e8e3db" }}>
-            <div style={{ fontSize:11,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Personal Information</div>
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-              <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Full Name *</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Your full name"/></div>
-              <div><label style={lbl}>Email *</label><input style={{ ...inp }} type="email" value={form.email} onChange={e=>set("email",e.target.value)} placeholder="your@email.com"/></div>
-              <div><label style={lbl}>Phone / WhatsApp</label><input style={inp} value={form.phone} onChange={e=>set("phone",e.target.value)} placeholder="+1 ..."/></div>
-              <div><label style={lbl}>Nationality</label><input style={inp} value={form.nationality} onChange={e=>set("nationality",e.target.value)} placeholder="Colombian, Spanish..."/></div>
-              <div><label style={lbl}>Age</label><input style={inp} type="number" value={form.age} onChange={e=>set("age",e.target.value)} placeholder="18"/></div>
-              <div><label style={lbl}>Instagram</label><input style={inp} value={form.instagram} onChange={e=>set("instagram",e.target.value)} placeholder="@username"/></div>
-              <div><label style={lbl}>¿Quién te ha referido? (agente)</label><input style={inp} value={form.referred_by} onChange={e=>set("referred_by",e.target.value)} placeholder="Nombre del agente que te contactó"/></div>
+        {/* Progress */}
+        <div style={{ display:"flex", gap:8, marginBottom:28 }}>
+          {[1,2,3].map(s=>(
+            <div key={s} style={{ flex:1, height:4, borderRadius:99, background:step>=s?"#6366f1":"#e8e3db", transition:"background .3s" }}/>
+          ))}
+        </div>
+        <div style={{ textAlign:"center", fontSize:12, color:"#9ca3af", marginBottom:24, fontWeight:600 }}>
+          Paso {step} de 3 — {["Datos personales","Perfil deportivo","Estudios y expectativas"][step-1]}
+        </div>
+
+        <div style={{ background:"#fff", borderRadius:16, padding:"28px 24px", boxShadow:"0 1px 8px rgba(0,0,0,0.06)", border:"1px solid #e8e3db" }}>
+
+          {/* STEP 1 — Personal */}
+          {step===1&&<div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>Datos personales</div>
+            <div><label style={lbl}>Nombre completo *</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Juan Garcia"/></div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div><label style={lbl}>Email *</label><input style={inp} type="email" value={form.email} onChange={e=>set("email",e.target.value)} placeholder="juan@gmail.com"/></div>
+              <div><label style={lbl}>WhatsApp</label><input style={inp} value={form.phone} onChange={e=>set("phone",e.target.value)} placeholder="+34 ..."/></div>
+              <div><label style={lbl}>Nacionalidad</label><input style={inp} value={form.nationality} onChange={e=>set("nationality",e.target.value)} placeholder="Colombiano, Espanol..."/></div>
+              <div><label style={lbl}>Edad</label><input style={inp} type="number" value={form.age} onChange={e=>set("age",e.target.value)} placeholder="18"/></div>
             </div>
-          </div>
+            <div><label style={lbl}>Instagram</label><input style={inp} value={form.instagram} onChange={e=>set("instagram",e.target.value)} placeholder="@usuario"/></div>
+            <div><label style={lbl}>Referido por (agente)</label><input style={inp} value={form.referred_by} onChange={e=>set("referred_by",e.target.value)} placeholder="Nombre del agente que te contacto"/></div>
+          </div>}
 
-          {/* Athletic */}
-          <div style={{ background:"#f5f0e8",borderRadius:14,padding:"22px 24px",border:"1px solid #e8e3db" }}>
-            <div style={{ fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Athletic Information</div>
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-              {/* Sport selector */}
-              <div style={{ gridColumn:"1/-1" }}>
-                <label style={lbl}>Sport</label>
-                <div style={{ display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8 }}>
-                  {SPORTS_LIST.map(s=>(
-                    <div key={s} onClick={()=>{ set("sport",s); set("position",""); }} style={{ padding:"10px 8px",borderRadius:9,border:`2px solid ${form.sport===s?"#6366f1":"#e8e3db"}`,background:form.sport===s?"rgba(99,102,241,0.08)":"#fff",cursor:"pointer",textAlign:"center" }}>
-                      <div style={{ fontSize:16,marginBottom:4 }}>{{ Soccer:"⚽",Tennis:"🎾","Track & Field":"🏃",Golf:"⛳",Volleyball:"🏐" }[s]||"🎯"}</div>
-                      <div style={{ fontSize:11,fontWeight:600,color:form.sport===s?"#6366f1":"#9ca3af" }}>{s}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Soccer */}
-              {form.sport==="Soccer"&&<>
-                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select position...</option>{["Goalkeeper","Center Back","Right Back","Left Back","Defensive Midfielder","Central Midfielder","Attacking Midfielder","Right Winger","Left Winger","Striker","Forward"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Dominant Foot</label><select style={{ ...inp,cursor:"pointer" }} value={form.foot||""} onChange={e=>set("foot",e.target.value)}><option value="">Select...</option>{["Right","Left","Both"].map(f=><option key={f}>{f}</option>)}</select></div>
-                <div><label style={lbl}>Goals this season</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="0"/></div>
-                <div><label style={lbl}>Assists this season</label><input style={inp} type="number" value={form.sport_assists||""} onChange={e=>set("sport_assists",e.target.value)} placeholder="0"/></div>
-                <div><label style={lbl}>Games played</label><input style={inp} type="number" value={form.sport_games||""} onChange={e=>set("sport_games",e.target.value)} placeholder="0"/></div>
-                <div><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
-              </>}
-
-              {/* Tennis */}
-              {form.sport==="Tennis"&&<>
-                <div><label style={lbl}>Playing style</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Singles","Doubles","Singles & Doubles"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Dominant Hand</label><select style={{ ...inp,cursor:"pointer" }} value={form.foot||""} onChange={e=>set("foot",e.target.value)}><option value="">Select...</option>{["Right","Left"].map(f=><option key={f}>{f}</option>)}</select></div>
-                <div><label style={lbl}>ITF Junior Ranking</label><input style={inp} value={form.sport_ranking||""} onChange={e=>set("sport_ranking",e.target.value)} placeholder="e.g. 250"/></div>
-                <div><label style={lbl}>National Ranking</label><input style={inp} value={form.sport_national_ranking||""} onChange={e=>set("sport_national_ranking",e.target.value)} placeholder="e.g. 15"/></div>
-                <div><label style={lbl}>Best tournament result</label><input style={inp} value={form.sport_best_result||""} onChange={e=>set("sport_best_result",e.target.value)} placeholder="e.g. Quarterfinal ITF G1"/></div>
-                <div><label style={lbl}>Current club</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
-              </>}
-
-              {/* Swimming */}
-              {form.sport==="Swimming"&&<>
-                <div><label style={lbl}>Main stroke</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Freestyle","Backstroke","Breaststroke","Butterfly","Individual Medley","Relay"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Best 50m free</label><input style={inp} value={form.sport_time_50free||""} onChange={e=>set("sport_time_50free",e.target.value)} placeholder="e.g. 24.50"/></div>
-                <div><label style={lbl}>Best 100m free</label><input style={inp} value={form.sport_time_100free||""} onChange={e=>set("sport_time_100free",e.target.value)} placeholder="e.g. 53.20"/></div>
-                <div><label style={lbl}>Best 100m back</label><input style={inp} value={form.sport_time_100back||""} onChange={e=>set("sport_time_100back",e.target.value)} placeholder="e.g. 57.00"/></div>
-                <div><label style={lbl}>Best 100m breast</label><input style={inp} value={form.sport_time_100breast||""} onChange={e=>set("sport_time_100breast",e.target.value)} placeholder="e.g. 1:05.00"/></div>
-                <div><label style={lbl}>Current club</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
-                <div><label style={lbl}>National ranking</label><input style={inp} value={form.sport_national_ranking||""} onChange={e=>set("sport_national_ranking",e.target.value)} placeholder="e.g. 8"/></div>
-              </>}
-
-              {/* Baseball */}
-              {form.sport==="Baseball"&&<>
-                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Pitcher","Catcher","First Base","Second Base","Third Base","Shortstop","Left Field","Center Field","Right Field","DH"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Pitch velocity (mph)</label><input style={inp} type="number" value={form.sport_velocity||""} onChange={e=>set("sport_velocity",e.target.value)} placeholder="85"/></div>
-                <div><label style={lbl}>Batting average</label><input style={inp} value={form.sport_batting_avg||""} onChange={e=>set("sport_batting_avg",e.target.value)} placeholder=".300"/></div>
-                <div><label style={lbl}>ERA (pitchers)</label><input style={inp} value={form.sport_era||""} onChange={e=>set("sport_era",e.target.value)} placeholder="2.50"/></div>
-                <div><label style={lbl}>Home runs</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="5"/></div>
-                <div><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
-              </>}
-
-              {/* Basketball */}
-              {form.sport==="Basketball"&&<>
-                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Wingspan (cm)</label><input style={inp} type="number" value={form.sport_wingspan||""} onChange={e=>set("sport_wingspan",e.target.value)} placeholder="200"/></div>
-                <div><label style={lbl}>Points per game</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="15"/></div>
-                <div><label style={lbl}>Rebounds per game</label><input style={inp} type="number" value={form.sport_rebounds||""} onChange={e=>set("sport_rebounds",e.target.value)} placeholder="8"/></div>
-                <div><label style={lbl}>Assists per game</label><input style={inp} type="number" value={form.sport_assists||""} onChange={e=>set("sport_assists",e.target.value)} placeholder="5"/></div>
-                <div><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
-              </>}
-
-              {/* Track & Field */}
-              {form.sport==="Track & Field"&&<>
-                <div><label style={lbl}>Event / Specialty</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select event...</option>{["100m","200m","400m","800m","1500m","5000m","10000m","110m Hurdles","400m Hurdles","High Jump","Long Jump","Triple Jump","Pole Vault","Shot Put","Discus","Hammer","Javelin","Decathlon","Heptathlon"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Personal best (mark)</label><input style={inp} value={form.sport_personal_best||""} onChange={e=>set("sport_personal_best",e.target.value)} placeholder="e.g. 10.85s / 7.20m"/></div>
-                <div><label style={lbl}>National ranking</label><input style={inp} value={form.sport_national_ranking||""} onChange={e=>set("sport_national_ranking",e.target.value)} placeholder="e.g. 3rd U20"/></div>
-                <div><label style={lbl}>World junior ranking</label><input style={inp} value={form.sport_world_ranking||""} onChange={e=>set("sport_world_ranking",e.target.value)} placeholder="e.g. Top 50"/></div>
-                <div><label style={lbl}>Club / Team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
-                <div><label style={lbl}>Current coach</label><input style={inp} value={form.sport_coach||""} onChange={e=>set("sport_coach",e.target.value)} placeholder="Coach name"/></div>
-              </>}
-
-              {/* Golf */}
-              {form.sport==="Golf"&&<>
-                <div><label style={lbl}>Category</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Amateur","Professional"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Handicap</label><input style={inp} value={form.sport_handicap||""} onChange={e=>set("sport_handicap",e.target.value)} placeholder="e.g. +2 / 5"/></div>
-                <div><label style={lbl}>Best 18-hole score</label><input style={inp} value={form.sport_best_score||""} onChange={e=>set("sport_best_score",e.target.value)} placeholder="e.g. 68"/></div>
-                <div><label style={lbl}>Amateur ranking</label><input style={inp} value={form.sport_ranking||""} onChange={e=>set("sport_ranking",e.target.value)} placeholder="e.g. Top 100 WAGR"/></div>
-                <div><label style={lbl}>Tournaments won</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="3"/></div>
-                <div><label style={lbl}>Current club</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Club name"/></div>
-              </>}
-
-              {/* Volleyball */}
-              {form.sport==="Volleyball"&&<>
-                <div><label style={lbl}>Position</label><select style={{ ...inp,cursor:"pointer" }} value={form.position} onChange={e=>set("position",e.target.value)}><option value="">Select...</option>{["Libero","Setter","Opposite","Middle Blocker","Outside Hitter","Right Side"].map(p=><option key={p}>{p}</option>)}</select></div>
-                <div><label style={lbl}>Approach reach (cm)</label><input style={inp} type="number" value={form.sport_reach||""} onChange={e=>set("sport_reach",e.target.value)} placeholder="310"/></div>
-                <div><label style={lbl}>Points per set</label><input style={inp} type="number" value={form.sport_goals||""} onChange={e=>set("sport_goals",e.target.value)} placeholder="4"/></div>
-                <div><label style={lbl}>Aces per set</label><input style={inp} type="number" value={form.sport_assists||""} onChange={e=>set("sport_assists",e.target.value)} placeholder="1"/></div>
-                <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Current team</label><input style={inp} value={form.sport_team||""} onChange={e=>set("sport_team",e.target.value)} placeholder="Team name"/></div>
-              </>}
-
-              {/* Common for all */}
-              <div><label style={lbl}>Height (cm)</label><input style={inp} type="number" value={form.height} onChange={e=>set("height",e.target.value)} placeholder="180"/></div>
-              <div><label style={lbl}>Weight (kg)</label><input style={inp} type="number" value={form.weight} onChange={e=>set("weight",e.target.value)} placeholder="75"/></div>
-              <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Highlight Video Link</label><input style={inp} type="url" value={form.video_url} onChange={e=>set("video_url",e.target.value)} placeholder="https://youtube.com/..."/></div>
-            </div>
-          </div>
-
-          {/* Academic */}
-          <div style={{ background:"#f5f0e8",borderRadius:14,padding:"22px 24px",border:"1px solid #e8e3db" }}>
-            <div style={{ fontSize:11,fontWeight:700,color:"#8b5cf6",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Academic Information</div>
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-              <div><label style={lbl}>GPA (0 - 4.0)</label><input style={inp} type="number" step="0.1" max="4.0" value={form.gpa} onChange={e=>set("gpa",e.target.value)} placeholder="3.5"/></div>
-              <div><label style={lbl}>SAT Score</label><input style={inp} type="number" value={form.sat_score} onChange={e=>set("sat_score",e.target.value)} placeholder="1200"/></div>
-              <div><label style={lbl}>TOEFL Score</label><input style={inp} type="number" value={form.toefl_score} onChange={e=>set("toefl_score",e.target.value)} placeholder="80"/></div>
-              <div><label style={lbl}>English Level</label><select style={{ ...inp,cursor:"pointer" }} value={form.english_level} onChange={e=>set("english_level",e.target.value)}>{["A1","A2","B1","B2","C1","C2","Native"].map(l=><option key={l}>{l}</option>)}</select></div>
-              <div><label style={lbl}>High School</label><input style={inp} value={form.high_school} onChange={e=>set("high_school",e.target.value)} placeholder="School name"/></div>
-              <div><label style={lbl}>Graduation Year</label><input style={inp} type="number" value={form.graduation_year} onChange={e=>set("graduation_year",e.target.value)} placeholder="2025"/></div>
-              <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Intended Major</label><input style={inp} value={form.major} onChange={e=>set("major",e.target.value)} placeholder="Business, Kinesiology, Communications..."/></div>
-            </div>
-          </div>
-
-          {/* Financial */}
-          <div style={{ background:"#f5f0e8",borderRadius:14,padding:"22px 24px",border:"1px solid rgba(16,185,129,0.1)" }}>
-            <div style={{ fontSize:11,fontWeight:700,color:"#10b981",textTransform:"uppercase",letterSpacing:1.5,marginBottom:16 }}>Scholarship Expectations</div>
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
-              <div><label style={lbl}>Scholarship % sought</label><input style={inp} type="number" min="0" max="100" value={form.scholarship_pct} onChange={e=>set("scholarship_pct",e.target.value)} placeholder="50"/></div>
-              <div><label style={lbl}>Annual budget max (USD)</label><input style={inp} type="number" value={form.budget} onChange={e=>set("budget",e.target.value)} placeholder="30000"/></div>
-              <div style={{ gridColumn:"1/-1" }}>
-                <label style={lbl}>FAFSA Eligible</label>
-                <div onClick={()=>set("fafsa",!form.fafsa)} style={{ display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"11px 14px",background:form.fafsa?"rgba(16,185,129,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${form.fafsa?"rgba(16,185,129,0.25)":"rgba(255,255,255,0.08)"}`,borderRadius:9 }}>
-                  <div style={{ width:20,height:20,borderRadius:5,background:form.fafsa?"#10b981":"transparent",border:`2px solid ${form.fafsa?"#10b981":"rgba(255,255,255,0.2)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff",flexShrink:0 }}>{form.fafsa?"✓":""}</div>
-                  <span style={{ fontSize:13,color:form.fafsa?"#10b981":"#9ca3af" }}>{form.fafsa?"Yes, I am FAFSA eligible":"I am not sure / not eligible for FAFSA"}</span>
-                </div>
+          {/* STEP 2 — Athletic */}
+          {step===2&&<div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>Perfil deportivo</div>
+            <div>
+              <label style={lbl}>Deporte *</label>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>
+                {SPORTS_LIST.map(s=>(
+                  <div key={s} onClick={()=>set("sport",s)} style={{ padding:"12px 6px", borderRadius:10, border:`2px solid ${form.sport===s?"#6366f1":"#e8e3db"}`, background:form.sport===s?"rgba(99,102,241,0.06)":"#f9f7f4", cursor:"pointer", textAlign:"center" }}>
+                    <div style={{ fontSize:22, marginBottom:4 }}>{{ Soccer:"⚽", Tennis:"🎾", Golf:"⛳", Volleyball:"🏐", "Track & Field":"🏃" }[s]}</div>
+                    <div style={{ fontSize:10, fontWeight:600, color:form.sport===s?"#6366f1":"#9ca3af" }}>{s}</div>
+                  </div>
+                ))}
               </div>
             </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div><label style={lbl}>Posicion / Especialidad</label><input style={inp} value={form.position} onChange={e=>set("position",e.target.value)} placeholder="Delantero, Backhand..."/></div>
+              <div><label style={lbl}>Altura (cm)</label><input style={inp} type="number" value={form.height} onChange={e=>set("height",e.target.value)} placeholder="178"/></div>
+            </div>
+            <div><label style={lbl}>Video highlight (YouTube / Drive)</label><input style={inp} value={form.video_url} onChange={e=>set("video_url",e.target.value)} placeholder="https://youtube.com/..."/></div>
+          </div>}
+
+          {/* STEP 3 — Academic */}
+          {step===3&&<div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>Estudios y expectativas</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div><label style={lbl}>GPA (nota media)</label><input style={inp} type="number" step="0.1" value={form.gpa} onChange={e=>set("gpa",e.target.value)} placeholder="3.5"/></div>
+              <div><label style={lbl}>Nivel de ingles</label>
+                <select style={{ ...inp, cursor:"pointer" }} value={form.english_level} onChange={e=>set("english_level",e.target.value)}>
+                  {["A1","A2","B1","B2","C1","C2","Native"].map(l=><option key={l}>{l}</option>)}
+                </select>
+              </div>
+              <div><label style={lbl}>Año de graduacion</label><input style={inp} type="number" value={form.graduation_year} onChange={e=>set("graduation_year",e.target.value)} placeholder="2025"/></div>
+              <div><label style={lbl}>Carrera deseada</label><input style={inp} value={form.major} onChange={e=>set("major",e.target.value)} placeholder="Business, Marketing..."/></div>
+              <div><label style={lbl}>Beca buscada (%)</label><input style={inp} type="number" value={form.scholarship_pct} onChange={e=>set("scholarship_pct",e.target.value)} placeholder="50"/></div>
+              <div><label style={lbl}>Presupuesto anual max (USD)</label><input style={inp} type="number" value={form.budget} onChange={e=>set("budget",e.target.value)} placeholder="25000"/></div>
+            </div>
+            <div><label style={lbl}>Algo mas que quieras contarnos</label><textarea style={{ ...inp, minHeight:80, resize:"vertical" }} value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder="Logros deportivos, objetivos, preguntas..."/></div>
+            {error&&<div style={{ padding:"12px 16px", background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:10, fontSize:13, color:"#ef4444" }}>{error}</div>}
+          </div>}
+
+          {/* Navigation */}
+          <div style={{ display:"flex", gap:10, marginTop:24 }}>
+            {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{ flex:1, padding:"13px", borderRadius:10, border:"1px solid #e8e3db", background:"#fff", color:"#374151", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"inherit" }}>Atras</button>}
+            {step<3
+              ? <button onClick={()=>{ if(step===1&&(!form.name.trim()||!form.email.trim())){ setError("Nombre y email son obligatorios"); return; } setError(""); setStep(s=>s+1); }} style={{ flex:2, padding:"13px", borderRadius:10, border:"none", background:"#1a1a2e", color:"#fff", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"inherit" }}>Siguiente</button>
+              : <button onClick={submit} disabled={submitting} style={{ flex:2, padding:"13px", borderRadius:10, border:"none", background:submitting?"#9ca3af":"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", cursor:submitting?"default":"pointer", fontSize:14, fontWeight:700, fontFamily:"inherit" }}>{submitting?"Enviando...":"Enviar solicitud"}</button>
+            }
           </div>
+        </div>
 
-          {/* Notes */}
-          <div style={{ background:"#f5f0e8",borderRadius:14,padding:"22px 24px",border:"1px solid #e8e3db" }}>
-            <label style={{ ...lbl,color:"#f59e0b" }}>Anything else you'd like us to know?</label>
-            <textarea style={{ ...inp,minHeight:90,resize:"vertical" }} value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder="Previous experience, goals, questions..."/>
-          </div>
-
-          {error&&<div style={{ padding:"12px 16px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,fontSize:13,color:"#f87171" }}>{error}</div>}
-
-          <button onClick={submit} disabled={submitting} style={{ padding:"16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:15,fontWeight:700,fontFamily:"inherit",opacity:submitting?0.7:1 }}>
-            {submitting?"Submitting...":"Submit My Application →"}
-          </button>
-
-          <div style={{ textAlign:"center",fontSize:12,color:"#374151" }}>
-            Questions? Contact us: <span style={{ color:"#818cf8" }}>futboluagency@gmail.com</span> · WhatsApp <span style={{ color:"#818cf8" }}>+34 603 331 990</span>
-          </div>
+        <div style={{ textAlign:"center", marginTop:20, fontSize:12, color:"#9ca3af" }}>
+          ¿Preguntas? <strong style={{ color:"#374151" }}>futboluagency@gmail.com</strong> · WhatsApp <strong style={{ color:"#374151" }}>+34 603 331 990</strong>
         </div>
       </div>
     </div>
   );
 };
+
 
 const PublicPlayerPage = ({ playerId }) => {
   const [player,setPlayer] = useState(null);
@@ -1911,16 +1821,14 @@ function AppInner() {
     {id:"coaches",l:"Entrenadores",icon:I.team,perm:"view_offers"},
     {id:"payments",l:"Pagos",icon:I.fin,perm:"view_payments"},
     {id:"earnings",l:"Ganancias",icon:I.fin,perm:"view_commissions"},
-    {id:"analytics",l:"Analiticas",icon:I.dash,perm:"view_payments"},
     {id:"calendar",l:"Calendario",icon:I.dash,perm:"view_dashboard"},
     {id:"reuniones",l:"Reuniones",icon:I.dash,perm:"view_dashboard"},
     {id:"chat",l:"Chat equipo",icon:I.team,perm:"view_dashboard"},
-    {id:"fua-sports",l:"FUA Sports",icon:I.team,perm:"view_team"},
-    {id:"latam",l:"LATAM",icon:I.team,perm:"view_team"},
+    {id:"analytics",l:"Analiticas",icon:I.dash,perm:"view_payments"},
     {id:"team",l:"Equipo",icon:I.team,perm:"view_team"},
   ];
   const navItems = isLatamDirector
-    ? allNavItems.filter(i=>["dashboard","pipeline","players","leads","offers","coaches","earnings","calendar","reuniones","chat","latam"].includes(i.id))
+    ? allNavItems.filter(i=>["dashboard","pipeline","players","leads","offers","coaches","earnings","calendar","reuniones","chat"].includes(i.id))
     : allNavItems.filter(item=>can(item.perm));
 
   // Greeting for agent link

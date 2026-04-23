@@ -199,9 +199,14 @@ export const CoachesDB = ({ players, isAdmin }) => {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const { data } = await supabase.from("coaches").select("*").order("created_at", { ascending:false });
-    setCoaches(data||[]);
-    setLoading(false);
+    try {
+      const { data } = await supabase.from("coaches").select("*").order("created_at", { ascending:false });
+      setCoaches(data||[]);
+    } catch(e) {
+      console.error("Error loading coaches:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const save = async () => {

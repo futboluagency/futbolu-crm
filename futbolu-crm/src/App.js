@@ -1385,7 +1385,7 @@ const FOLLOW_UP_STATUSES = [
   { id:"signed", label:"Firmado", color:"#22c55e" },
 ];
 
-const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile, isAdmin }) => {
+const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile, isAdmin, agentProfiles }) => {
   const [tab, setTab] = useState("profile");
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
@@ -1417,6 +1417,30 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
     setNewMsg("");
     await loadMessages();
     setSending(false);
+
+    // Send email to ALL recruiters + CEO when anyone writes in chat
+    const msgText = newMsg.trim();
+    const emailBody = `Nuevo mensaje en el lead ${lead.name}:\n\n"${msgText}"\n\nEscrito por: ${profile?.name||"Equipo"}\nDeporte: ${lead.sport||"—"} · ${lead.nationality||"—"}`;
+    const CEO_EMAIL = "futboluagency@gmail.com";
+    
+    // Always notify CEO
+    if(profile?.email !== CEO_EMAIL) {
+      fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ type:"calendar_invite", to:CEO_EMAIL, eventTitle:`Chat lead ${lead.name}: nuevo mensaje`, eventDate:new Date().toISOString().split("T")[0], body:emailBody, senderName:profile?.name||"Equipo" })
+      }).catch(()=>{});
+    }
+    // Notify the agent assigned to this lead
+    if(lead.referred_by && agentProfiles?.length>0) {
+      const agentProfile = agentProfiles.find(p=>
+        p.name?.toLowerCase().includes((lead.referred_by||"").split(" ")[0].toLowerCase()) ||
+        (lead.referred_by||"").toLowerCase().includes((p.name||"").split(" ")[0].toLowerCase())
+      );
+      if(agentProfile?.email && agentProfile.email !== profile?.email && agentProfile.email !== CEO_EMAIL) {
+        fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ type:"calendar_invite", to:agentProfile.email, eventTitle:`Tu lead ${lead.name}: nuevo mensaje`, eventDate:new Date().toISOString().split("T")[0], body:emailBody, senderName:profile?.name||"Equipo" })
+        }).catch(()=>{});
+      }
+    }
   };
 
   const saveFollowUp = async () => {
@@ -1618,46 +1642,140 @@ const EarningsForm = ({ players, agentProfiles, onSave }) => {
   );
 };
 
-const PermissionsModal = ({ agentProfile, onClose, onSave }) => {
+const RecruiterProfileModal = ({ agentProfile, onClose, onSave, isAdmin }) => {
   const PERM_LABELS = {
-    view_dashboard:"Ver Dashboard",view_players:"Ver Jugadores",view_leads:"Ver Leads",
-    view_offers:"Ver Universidades",view_payments:"Ver Pagos y Revenue",
-    view_commissions:"Ver Comisiones",view_team:"Ver Equipo",
-    view_all_agents:"Ver todos los agentes",create_players:"Crear jugadores",delete_players:"Eliminar jugadores",manage_offers:"Gestionar ofertas",
+    view_dashboard:"Ver Dashboard",
+    view_players:"Ver Jugadores",
+    view_leads:"Ver Leads",
+    view_offers:"Ver Universidades y Entrenadores",
+    view_payments:"Ver Pagos y Revenue",
+    view_commissions:"Ver sus Ganancias",
+    view_team:"Ver Equipo",
+    create_players:"Crear jugadores",
+    delete_players:"Eliminar jugadores",
+    manage_offers:"Gestionar ofertas",
   };
   const current = typeof agentProfile.permissions==="string" ? JSON.parse(agentProfile.permissions) : (agentProfile.permissions||DEFAULT_PERMISSIONS);
-  const [perms,setPerms] = useState({...DEFAULT_PERMISSIONS,...current});
-  const [saving,setSaving] = useState(false);
+  const [perms, setPerms] = useState({...DEFAULT_PERMISSIONS,...current});
+  const [name, setName] = useState(agentProfile.display_name||agentProfile.name||"");
+  const [region, setRegion] = useState(agentProfile.region||"global");
+  const [phone, setPhone] = useState(agentProfile.phone||"");
+  const [bio, setBio] = useState(agentProfile.bio||"");
+  const [tab, setTab] = useState("profile");
+  const [saving, setSaving] = useState(false);
+
   const toggle = (k) => setPerms(p=>({...p,[k]:!p[k]}));
-  const save = async () => { setSaving(true); await onSave(agentProfile.id,perms); setSaving(false); onClose(); };
+
+  const save = async () => {
+    setSaving(true);
+    // Update agent_profiles
+    await supabase.from("agent_profiles").update({
+      display_name: name||null,
+      name: name||agentProfile.name,
+      region,
+      phone: phone||null,
+      bio: bio||null,
+      permissions: JSON.stringify(perms),
+    }).eq("id", agentProfile.id);
+    // Also update agents table if exists
+    if(agentProfile.email) {
+      await supabase.from("agents").update({ name, region, phone }).eq("email", agentProfile.email);
+    }
+    await onSave(agentProfile.id, perms);
+    setSaving(false);
+    onClose();
+  };
+
+  const inp = { background:"#f9f7f4", border:"1px solid #e5e0d8", borderRadius:8, padding:"9px 12px", color:"#1a1a2e", fontSize:13, outline:"none", width:"100%", boxSizing:"border-box", fontFamily:"inherit" };
+
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16 }}>
-      <div style={{ background:"#ffffff",border:"1px solid #e0dbd3",borderRadius:18,width:"100%",maxWidth:420,maxHeight:"90vh",overflowY:"auto",padding:24 }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20 }}>
-          <div>
-            <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:"#1a1a2e" }}>Permisos de {agentProfile.name}</h3>
-            <div style={{ fontSize:11,color:"#4b5563",marginTop:3 }}>{agentProfile.email}</div>
-          </div>
-          <button onClick={onClose} style={{ background:"#e8e3db",border:"none",color:"#6b7280",cursor:"pointer",width:28,height:28,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center" }}>{I.x}</button>
-        </div>
-        <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
-          {Object.entries(PERM_LABELS).map(([k,label])=>(
-            <div key={k} onClick={()=>toggle(k)} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:perms[k]?"rgba(99,102,241,0.08)":"rgba(255,255,255,0.02)",border:`1px solid ${perms[k]?"rgba(99,102,241,0.2)":"rgba(255,255,255,0.05)"}`,borderRadius:9,cursor:"pointer" }}>
-              <span style={{ fontSize:13,color:perms[k]?"#e5e7eb":"#6b7280",fontWeight:perms[k]?500:400 }}>{label}</span>
-              <div style={{ width:36,height:20,borderRadius:20,background:perms[k]?"#6366f1":"rgba(255,255,255,0.08)",position:"relative",transition:"background .2s",flexShrink:0 }}>
-                <div style={{ position:"absolute",top:2,left:perms[k]?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s" }}/>
-              </div>
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16 }}>
+      <div style={{ background:"#fff",borderRadius:18,width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
+        {/* Header */}
+        <div style={{ padding:"20px 24px 0", borderBottom:"1px solid #f0ebe3" }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+            <div>
+              <h3 style={{ margin:0,fontSize:16,fontWeight:700,color:"#1a1a2e" }}>Perfil de {agentProfile.name}</h3>
+              <div style={{ fontSize:11,color:"#9ca3af",marginTop:3 }}>{agentProfile.email}</div>
             </div>
-          ))}
+            <button onClick={onClose} style={{ background:"#f5f0e8",border:"none",color:"#6b7280",cursor:"pointer",width:28,height:28,borderRadius:7 }}>✕</button>
+          </div>
+          {/* Tabs */}
+          <div style={{ display:"flex",gap:2 }}>
+            {[{id:"profile",l:"Perfil"},{id:"permissions",l:"Permisos"},{id:"region",l:"Region"}].map(t=>(
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{ padding:"7px 16px",borderRadius:"8px 8px 0 0",border:"none",cursor:"pointer",fontSize:12,fontWeight:tab===t.id?700:500,background:tab===t.id?"#fff":"#f9f7f4",color:tab===t.id?"#1a1a2e":"#9ca3af",fontFamily:"inherit",borderBottom:tab===t.id?"2px solid #6366f1":"2px solid transparent" }}>{t.l}</button>
+            ))}
+          </div>
         </div>
-        <div style={{ display:"flex",gap:10 }}>
-          <button onClick={onClose} style={{ flex:1,padding:"10px",borderRadius:9,border:"1px solid #e0dbd3",background:"none",color:"#6b7280",cursor:"pointer",fontFamily:"inherit" }}>Cancelar</button>
-          <button onClick={save} disabled={saving} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontWeight:600,fontFamily:"inherit",opacity:saving?0.7:1 }}>{saving?"Guardando...":"Guardar permisos"}</button>
+
+        <div style={{ padding:"20px 24px" }}>
+          {/* PROFILE TAB */}
+          {tab==="profile"&&<div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+            <div>
+              <label style={{ fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Nombre que se mostrara</label>
+              <input style={inp} value={name} onChange={e=>setName(e.target.value)} placeholder="Nombre del reclutador"/>
+            </div>
+            <div>
+              <label style={{ fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Telefono / WhatsApp</label>
+              <input style={inp} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+34 ..."/>
+            </div>
+            <div>
+              <label style={{ fontSize:11,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Bio / Descripcion</label>
+              <textarea style={{ ...inp,minHeight:70,resize:"vertical" }} value={bio} onChange={e=>setBio(e.target.value)} placeholder="Especialidad, paises, deportes que cubre..."/>
+            </div>
+            <div style={{ background:"#f9f7f4",border:"1px solid #e8e3db",borderRadius:10,padding:"12px 14px",fontSize:12,color:"#6b7280" }}>
+              Email de acceso: <strong style={{ color:"#1a1a2e" }}>{agentProfile.email}</strong>
+            </div>
+          </div>}
+
+          {/* PERMISSIONS TAB */}
+          {tab==="permissions"&&<div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+            <div style={{ fontSize:12,color:"#9ca3af",marginBottom:8 }}>Activa o desactiva las secciones a las que puede acceder este reclutador.</div>
+            {Object.entries(PERM_LABELS).map(([k,label])=>(
+              <div key={k} onClick={()=>toggle(k)} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:perms[k]?"rgba(99,102,241,0.06)":"#f9f7f4",border:`1px solid ${perms[k]?"rgba(99,102,241,0.2)":"#e8e3db"}`,borderRadius:9,cursor:"pointer" }}>
+                <span style={{ fontSize:13,color:perms[k]?"#1a1a2e":"#9ca3af",fontWeight:perms[k]?500:400 }}>{label}</span>
+                <div style={{ width:36,height:20,borderRadius:20,background:perms[k]?"#6366f1":"#e8e3db",position:"relative",transition:"background .2s",flexShrink:0 }}>
+                  <div style={{ position:"absolute",top:2,left:perms[k]?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .2s" }}/>
+                </div>
+              </div>
+            ))}
+            <div style={{ display:"flex",gap:8,marginTop:8 }}>
+              <button onClick={()=>setPerms(Object.fromEntries(Object.keys(PERM_LABELS).map(k=>[k,true])))} style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid #e8e3db",background:"#fff",color:"#6366f1",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>Todo on</button>
+              <button onClick={()=>setPerms(DEFAULT_PERMISSIONS)} style={{ flex:1,padding:"8px",borderRadius:8,border:"1px solid #e8e3db",background:"#fff",color:"#9ca3af",cursor:"pointer",fontSize:12,fontFamily:"inherit" }}>Resetear</button>
+            </div>
+          </div>}
+
+          {/* REGION TAB */}
+          {tab==="region"&&<div style={{ display:"flex",flexDirection:"column",gap:12 }}>
+            <div style={{ fontSize:12,color:"#9ca3af",marginBottom:4 }}>Define el area de trabajo de este reclutador. Determinara que atletas y leads puede ver.</div>
+            {[
+              {id:"global",l:"Global",d:"Ve todos los atletas y leads de todas las regiones",color:"#6366f1"},
+              {id:"latam",l:"LATAM",d:"Solo atletas y leads de Latinoamerica (equipo de Miguel)",color:"#10b981"},
+              {id:"europe",l:"Europa",d:"Solo atletas y leads de paises europeos",color:"#3b82f6"},
+              {id:"usa",l:"USA",d:"Solo atletas y leads basados en USA",color:"#f59e0b"},
+            ].map(r=>(
+              <div key={r.id} onClick={()=>setRegion(r.id)} style={{ padding:"14px 16px",borderRadius:10,border:`2px solid ${region===r.id?r.color:"#e8e3db"}`,background:region===r.id?`${r.color}08`:"#f9f7f4",cursor:"pointer" }}>
+                <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                  <div style={{ fontSize:14,fontWeight:700,color:region===r.id?r.color:"#1a1a2e" }}>{r.l}</div>
+                  {region===r.id&&<div style={{ width:20,height:20,borderRadius:"50%",background:r.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff" }}>✓</div>}
+                </div>
+                <div style={{ fontSize:12,color:"#9ca3af",marginTop:4 }}>{r.d}</div>
+              </div>
+            ))}
+          </div>}
+
+          {/* Save button */}
+          <div style={{ display:"flex",gap:10,marginTop:20 }}>
+            <button onClick={onClose} style={{ flex:1,padding:"10px",borderRadius:9,border:"1px solid #e8e3db",background:"none",color:"#6b7280",cursor:"pointer",fontFamily:"inherit" }}>Cancelar</button>
+            <button onClick={save} disabled={saving} style={{ flex:2,padding:"10px",borderRadius:9,border:"none",background:saving?"#e8e3db":"#1a1a2e",color:saving?"#9ca3af":"#fff",cursor:"pointer",fontWeight:600,fontFamily:"inherit" }}>{saving?"Guardando...":"Guardar cambios"}</button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+const PermissionsModal = RecruiterProfileModal;
 
 export default function App() {
   // Check public routes BEFORE any auth — prevents auth loading from blocking public pages
@@ -2372,27 +2490,34 @@ function AppInner() {
               {/* CRM Access management — admin only */}
               {isAdmin&&agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").length>0&&(
                 <Card style={{ padding:"18px 20px",marginBottom:16,border:"1px solid #e8e3db" }}>
-                  <div style={{ fontSize:11,fontWeight:700,color:"#1a1a2e",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>Accesos de Reclutadores</div>
+                  <div style={{ fontSize:11,fontWeight:700,color:"#1a1a2e",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>Reclutadores con acceso al CRM</div>
                   <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
                     {agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(ap=>{
                       const apStats = { players:players.filter(p=>matchesAgentName(p.agent,ap.name)).length, leads:leads.filter(l=>l.referred_by&&l.referred_by.toLowerCase().includes((ap.name||"").split(" ")[0].toLowerCase())).length };
+                      const regionColors = { latam:"#10b981", europe:"#3b82f6", usa:"#f59e0b", global:"#9ca3af" };
+                      const regionColor = regionColors[ap.region||"global"]||"#9ca3af";
                       return (
-                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:"#faf8f5",borderRadius:10,border:"1px solid #ede8e0" }}>
-                        <div style={{ width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff" }}>{(ap.name||ap.email||"?")[0].toUpperCase()}</div>
+                      <div key={ap.id} style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"#faf8f5",borderRadius:12,border:"1px solid #f0ebe3" }}>
+                        <div style={{ width:40,height:40,borderRadius:10,background:`linear-gradient(135deg,${regionColor}40,${regionColor}20)`,border:`1px solid ${regionColor}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:regionColor,flexShrink:0 }}>{(ap.display_name||ap.name||"?")[0].toUpperCase()}</div>
                         <div style={{ flex:1,minWidth:0 }}>
-                          <div style={{ fontSize:13,fontWeight:600,color:"#1a1a2e" }}>{ap.name||ap.email}</div>
-                          <div style={{ fontSize:11,color:"#6b7280",marginTop:1 }}>{ap.email}</div>
+                          <div style={{ display:"flex",alignItems:"center",gap:6,flexWrap:"wrap" }}>
+                            <div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e" }}>{ap.display_name||ap.name||ap.email}</div>
+                            {ap.region&&ap.region!=="global"&&<span style={{ padding:"2px 8px",borderRadius:20,background:`${regionColor}15`,color:regionColor,fontSize:10,fontWeight:700,border:`1px solid ${regionColor}25` }}>{ap.region.toUpperCase()}</span>}
+                            <span style={{ padding:"2px 8px",borderRadius:20,background:"#f5f0e8",color:"#9ca3af",fontSize:10 }}>{ap.role==="latam_director"?"Director LATAM":"Reclutador"}</span>
+                          </div>
+                          <div style={{ fontSize:11,color:"#9ca3af",marginTop:2 }}>{ap.email}</div>
+                          {ap.bio&&<div style={{ fontSize:11,color:"#6b7280",marginTop:3,fontStyle:"italic" }}>{ap.bio}</div>}
                         </div>
-                        <div style={{ display:"flex",gap:12,fontSize:12,color:"#6b7280" }}>
-                          <span><strong style={{ color:"#1a1a2e" }}>{apStats.players}</strong> atletas</span>
-                          <span><strong style={{ color:"#6366f1" }}>{apStats.leads}</strong> leads</span>
+                        <div style={{ display:"flex",gap:10,fontSize:12,color:"#6b7280",flexShrink:0 }}>
+                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#1a1a2e" }}>{apStats.players}</div><div style={{ fontSize:10,color:"#9ca3af" }}>atletas</div></div>
+                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#6366f1" }}>{apStats.leads}</div><div style={{ fontSize:10,color:"#9ca3af" }}>leads</div></div>
                         </div>
-                        <button onClick={()=>setPermModal(ap)} style={{ padding:"6px 12px",borderRadius:7,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Permisos</button>
+                        <button onClick={()=>setPermModal(ap)} style={{ padding:"7px 14px",borderRadius:8,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>Editar perfil</button>
                       </div>
                     );})}
                   </div>
                   <div style={{ marginTop:12,padding:"10px 14px",background:"#f5f0e8",borderRadius:8,fontSize:12,color:"#6b7280" }}>
-                    Los reclutadores acceden con su Gmail en: <strong style={{ color:"#6366f1" }}>{window.location.origin}</strong>
+                    Los reclutadores entran con su Gmail en: <strong style={{ color:"#6366f1" }}>{window.location.origin}</strong>
                   </div>
                 </Card>
               )}
@@ -2520,7 +2645,7 @@ function AppInner() {
 
       {addModal&&<PlayerModal onClose={()=>setAddModal(false)} onSave={async(p)=>{ await addPlayer(p); setAddModal(false); }} agentList={agentNames}/>}
       {agentModal&&<AgentModal initial={agentModal==="new"?null:agentModal} onClose={()=>setAgentModal(null)} onSave={saveAgent}/>}
-      {selectedLead&&<LeadDetailFull lead={selectedLead} onClose={()=>setSelectedLead(null)} onConvert={convertLead} onDelete={deleteLead} onRefresh={loadAll} profile={profile} isAdmin={isAdmin}/>}
+      {selectedLead&&<LeadDetailFull lead={selectedLead} onClose={()=>setSelectedLead(null)} onConvert={convertLead} onDelete={deleteLead} onRefresh={loadAll} profile={profile} isAdmin={isAdmin} agentProfiles={agentProfiles}/>}
       {permModal&&<PermissionsModal agentProfile={permModal} onClose={()=>setPermModal(null)} onSave={async(id,perms)=>{ await updatePermissions(id,perms); await loadAll(); }}/>}
     </div>
   );

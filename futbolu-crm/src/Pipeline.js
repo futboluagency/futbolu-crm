@@ -28,7 +28,8 @@ export const Pipeline = ({ leads, players, onLeadClick, onPlayerClick, onRefresh
 
   const stages = view==="leads" ? LEAD_STAGES : PLAYER_STAGES;
 
-  const getLeadStage = (lead) => lead.follow_up_status||"new";
+  const VALID_LEAD_STAGE_IDS = ["new","contacted","eligible","not_eligible","next_year","in_progress","signed"];
+const getLeadStage = (lead) => VALID_LEAD_STAGE_IDS.includes(lead.follow_up_status) ? lead.follow_up_status : "new";
   const getPlayerStage = (player) => {
     if(player.status==="Scholarship") return "scholarship";
     if(player.status==="In Process") return "admission";

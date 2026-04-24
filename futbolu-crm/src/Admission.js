@@ -37,11 +37,16 @@ export const AdmissionChecklist = ({ playerId, isAdmin }) => {
   useEffect(() => { load(); }, [playerId]);
 
   const load = async () => {
-    const { data } = await supabase.from("admission_steps").select("*").eq("player_id", playerId);
-    const map = {};
-    (data || []).forEach(s => { map[s.step_id] = s.completed; });
-    setSteps(map);
-    setLoading(false);
+    try {
+      const { data } = await supabase.from("admission_steps").select("*").eq("player_id", playerId);
+      const map = {};
+      (data || []).forEach(s => { map[s.step_id] = s.completed; });
+      setSteps(map);
+    } catch(e) {
+      console.error("Error loading admission steps:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggle = async (stepId) => {

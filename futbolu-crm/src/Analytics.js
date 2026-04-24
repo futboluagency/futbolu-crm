@@ -100,7 +100,7 @@ export const Analytics = ({ players, leads, commissions, agents, agentProfiles }
 
       {/* Main stats */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:16 }}>
-        <BigStat label="Atletas" value={filtered.length} sub={`${filtered.filter(p=>p.status==="Scholarship").length} becados`} color="#6366f1"/>
+        <BigStat label="Atletas" value={filtered.length} sub={`${filtered.filter(p=>p.status==="Scholarship"||p.status==="Becado").length} becados`} color="#6366f1"/>
         <BigStat label="Revenue total" value={`${(totalRevenue/1000).toFixed(1)}k€`} color="#8b5cf6"/>
         <BigStat label="Cobrado" value={`${(totalCollected/1000).toFixed(1)}k€`} sub={`${collectionRate}% del total`} color="#10b981"/>
         <BigStat label="Pendiente" value={`${(pending/1000).toFixed(1)}k€`} color="#f59e0b"/>
@@ -110,7 +110,7 @@ export const Analytics = ({ players, leads, commissions, agents, agentProfiles }
         {/* Leads conversion */}
         <Card title="Conversión de Leads" color="#10b981">
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
-            <BigStat label="Leads totales" value={leads.length} color="#6b7280"/>
+            <BigStat label="Leads totales" value={totalLeads} color="#6b7280"/>
             <BigStat label="Convertidos" value={players.length} color="#10b981"/>
             <BigStat label="Tasa" value={`${conversionRate}%`} color="#f59e0b"/>
           </div>

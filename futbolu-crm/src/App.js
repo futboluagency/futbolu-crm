@@ -406,7 +406,6 @@ const AgentModal = ({ initial, onClose, onSave }) => {
     if(!form.name.trim()) return; 
     setSaving(true); 
       try {
-    try { 
       await onSave(form); 
       onClose(); 
     } catch(e) { 

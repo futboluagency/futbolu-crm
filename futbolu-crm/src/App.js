@@ -412,13 +412,9 @@ const AgentModal = ({ initial, onClose, onSave }) => {
       console.error(e);
       const msg = e?.message||JSON.stringify(e)||"Error desconocido";
       alert("Error al guardar: " + msg);
+    } finally {
+      setSaving(false);
     }
-      } catch(e) {
-        setError("Error al guardar. Inténtalo de nuevo.");
-        console.error(e);
-      } finally {
-        setSaving(false);
-      }
   };
   return (
     <Modal title={initial?"Editar miembro":"Nuevo miembro"} onClose={onClose} maxWidth={420}>

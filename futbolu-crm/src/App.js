@@ -265,7 +265,7 @@ const PaymentRow = ({ label, amount, payment, onToggle, agents }) => (
       {payment.paid?<span style={{ color:"#10b981" }}>{I.check}</span>:<span style={{ color:"#f59e0b",fontSize:12 }}>!</span>}
     </div>
     <div style={{ flex:1 }}>
-      <div style={{ fontSize:13,fontWeight:600,color:"#374151" }}>{label} <span style={{ color:"#1a1a2e",fontWeight:800 }}>{amount}â¬</span></div>
+      <div style={{ fontSize:13,fontWeight:600,color:"#374151" }}>{label} <span style={{ color:"#1a1a2e",fontWeight:800 }}>{amount}€</span></div>
       {payment.paid?<div style={{ fontSize:11,color:"#6b7280",marginTop:2 }}>Cobrado por <span style={{ color:"#818cf8",fontWeight:700 }}>{payment.paidBy}</span> Â· {payment.date}</div>:<div style={{ fontSize:11,color:"#f59e0b",marginTop:2 }}>Pendiente de cobro</div>}
     </div>
     <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
@@ -354,7 +354,7 @@ const PlayerModal = ({ initial, onClose, onSave, agentList }) => {
             </div>
           </div>
         </div></div>
-        <div><Sec t="Payment Structure" c="#6366f1"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}><div><label style={lbl}>Total Fee (â¬)</label><input style={inp} type="number" value={form.totalFee||2700} onChange={e=>set("totalFee",e.target.value)}/></div><div><label style={lbl}>First Payment (â¬)</label><input style={inp} type="number" value={form.payment1Amount||900} onChange={e=>set("payment1Amount",e.target.value)}/></div><div><label style={lbl}>Second Payment (â¬)</label><input style={inp} type="number" value={form.payment2Amount||1800} onChange={e=>set("payment2Amount",e.target.value)}/></div></div></div>
+        <div><Sec t="Payment Structure" c="#6366f1"/><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}><div><label style={lbl}>Total Fee (€)</label><input style={inp} type="number" value={form.totalFee||2700} onChange={e=>set("totalFee",e.target.value)}/></div><div><label style={lbl}>First Payment (€)</label><input style={inp} type="number" value={form.payment1Amount||900} onChange={e=>set("payment1Amount",e.target.value)}/></div><div><label style={lbl}>Second Payment (€)</label><input style={inp} type="number" value={form.payment2Amount||1800} onChange={e=>set("payment2Amount",e.target.value)}/></div></div></div>
         <div><label style={lbl}>Internal Notes</label><textarea style={{ ...inp,minHeight:70,resize:"vertical" }} value={form.notes||""} onChange={e=>set("notes",e.target.value)} placeholder="Follow-up notes, observations..."/></div>
         <div style={{ display:"flex",gap:10 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancel</Btn></div><div style={{ flex:2 }}><Btn onClick={save} disabled={saving}>{saving?"Saving...":initial?"Save Changes":"Create Profile"}</Btn></div></div>
       </div>
@@ -384,7 +384,7 @@ const OfferModal = ({ onClose, onAdd }) => {
           <div><label style={lbl}>Estado USA</label><input style={inp} value={f.state} onChange={e=>setF(p=>({...p,state:e.target.value}))} placeholder="TX, FL..."/></div>
           <div><label style={lbl}>DivisiÃ³n</label><select style={{ ...inp,cursor:"pointer" }} value={f.division} onChange={e=>setF(p=>({...p,division:e.target.value}))}>{DIVISIONS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>% Beca</label><input style={inp} type="number" min="0" max="100" value={f.scholarshipPct} onChange={e=>setF(p=>({...p,scholarshipPct:e.target.value}))}/></div>
-          <div><label style={lbl}>Importe anual (â¬)</label><input style={inp} type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} placeholder="20000"/></div>
+          <div><label style={lbl}>Importe anual (€)</label><input style={inp} type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} placeholder="20000"/></div>
           <div><label style={lbl}>Temporada</label><select style={{ ...inp,cursor:"pointer" }} value={f.season} onChange={e=>setF(p=>({...p,season:e.target.value}))}>{SEASONS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>Estado</label><select style={{ ...inp,cursor:"pointer" }} value={f.status} onChange={e=>setF(p=>({...p,status:e.target.value}))}>{OFFER_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
           <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Logo (opcional)</label><PhotoUpload currentUrl={f.logoUrl} onUpload={u=>setF(p=>({...p,logoUrl:u}))} size={44}/></div>
@@ -475,7 +475,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
     loadDocs();
   },[player.id]);
 
-  const handlePayment=async(num,agent)=>{ setSaving(true); const date=agent?new Date().toISOString().split("T")[0]:null; const dbU=num===1?{payment1_paid:!!agent,payment1_paid_by:agent,payment1_date:date}:{payment2_paid:!!agent,payment2_paid_by:agent,payment2_date:date}; await supabase.from("players").update(dbU).eq("id",player.id); if(agent) await supabase.from("timeline").insert({player_id:player.id,date,event:`${num===1?`Pago inicial (${player.payment1Amount||900}â¬)`:`Segundo pago (${player.payment2Amount||1800}â¬)`} cobrado por ${agent}`,type:"payment"}); await onRefresh(); setSaving(false); };
+  const handlePayment=async(num,agent)=>{ setSaving(true); const date=agent?new Date().toISOString().split("T")[0]:null; const dbU=num===1?{payment1_paid:!!agent,payment1_paid_by:agent,payment1_date:date}:{payment2_paid:!!agent,payment2_paid_by:agent,payment2_date:date}; await supabase.from("players").update(dbU).eq("id",player.id); if(agent) await supabase.from("timeline").insert({player_id:player.id,date,event:`${num===1?`Pago inicial (${player.payment1Amount||900}€)`:`Segundo pago (${player.payment2Amount||1800}€)`} cobrado por ${agent}`,type:"payment"}); await onRefresh(); setSaving(false); };
   const addOffer=async(o)=>{ await supabase.from("offers").insert({player_id:player.id,university:o.university,state:o.state,division:o.division,scholarship_pct:o.scholarshipPct,amount:o.amount,season:o.season,status:o.status,notes:o.notes,logo_url:o.logoUrl||null}); await onRefresh(); };
   const updateOfferStatus=async(id,status)=>{ await supabase.from("offers").update({status}).eq("id",id); await onRefresh(); };
   const removeOffer=async(id)=>{ await supabase.from("offers").delete().eq("id",id); await onRefresh(); };
@@ -521,7 +521,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
             </div>
             <div style={{ display:"flex",gap:10,flexWrap:"wrap",alignItems:"center" }}>
               <div style={{ padding:"6px 14px",borderRadius:8,background:paid>=totalFee?"rgba(16,185,129,0.08)":paid>0?"rgba(245,158,11,0.06)":"rgba(239,68,68,0.06)",border:`1px solid ${paid>=totalFee?"rgba(16,185,129,0.2)":paid>0?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.15)"}` }}>
-                <span style={{ fontSize:13,fontWeight:700,color:paid>=totalFee?"#10b981":paid>0?"#f59e0b":"#ef4444" }}>{paid>=totalFee?`Pagado ${totalFee}â¬`:`${paid}â¬ / ${totalFee}â¬`}</span>
+                <span style={{ fontSize:13,fontWeight:700,color:paid>=totalFee?"#10b981":paid>0?"#f59e0b":"#ef4444" }}>{paid>=totalFee?`Pagado ${totalFee}€`:`${paid}€ / ${totalFee}€`}</span>
               </div>
               {player.scholarshipPct>0&&<div style={{ padding:"6px 14px",borderRadius:8,background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.15)" }}><span style={{ fontSize:13,fontWeight:700,color:"#6366f1" }}>Beca {player.scholarshipPct}%</span></div>}
               {player.videoUrl&&<a href={player.videoUrl} target="_blank" rel="noreferrer" style={{ padding:"6px 14px",borderRadius:8,background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.15)",textDecoration:"none",color:"#ef4444",fontSize:12,fontWeight:600 }}>Ver video</a>}
@@ -600,7 +600,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
                   </div>
                   <div style={{ display:"flex",gap:12,flexWrap:"wrap",fontSize:12,color:"#6b7280",marginBottom:7 }}>
                     {offer.state&&<span>{offer.state}</span>}
-                    {offer.amount&&<span style={{ color:"#10b981",fontWeight:700 }}>{Number(offer.amount).toLocaleString()}â¬/aÃ±o</span>}
+                    {offer.amount&&<span style={{ color:"#10b981",fontWeight:700 }}>{Number(offer.amount).toLocaleString()}€/aÃ±o</span>}
                     {offer.season&&<span style={{ color:"#f59e0b",fontWeight:600 }}>{offer.season}</span>}
                     <span>Beca: <span style={{ color:"#6366f1",fontWeight:700 }}>{offer.scholarshipPct}%</span></span>
                   </div>
@@ -619,9 +619,9 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
 
       {tab==="payments"&&<div style={{ display:"flex",flexDirection:"column",gap:12 }}>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10 }}>
-          <Stat label="Total acordado" value={`${totalFee.toLocaleString()}â¬`} color="#6366f1"/>
-          <Stat label="Cobrado" value={`${paid}â¬`} color="#10b981" sub={`${Math.round((paid/totalFee)*100)}%`}/>
-          <Stat label="Pendiente" value={`${(totalFee-paid)}â¬`} color={paid>=totalFee?"#10b981":"#f59e0b"}/>
+          <Stat label="Total acordado" value={`${totalFee.toLocaleString()}€`} color="#6366f1"/>
+          <Stat label="Cobrado" value={`${paid}€`} color="#10b981" sub={`${Math.round((paid/totalFee)*100)}%`}/>
+          <Stat label="Pendiente" value={`${(totalFee-paid)}€`} color={paid>=totalFee?"#10b981":"#f59e0b"}/>
         </div>
         <Card style={{ padding:"18px 20px" }}>
           <div style={{ fontSize:10,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2,marginBottom:12 }}>Estructura de pagos</div>
@@ -828,7 +828,7 @@ const CommissionForm = ({ players, onSave, onRefresh }) => {
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% ComisiÃ³n</label>
           <input style={{ ...inp2,width:"100%" }} type="number" min="0" max="100" value={f.percentage} onChange={e=>setF(x=>({...x,percentage:e.target.value}))}/>
         </div>
-        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (â¬) {suggestedAmount>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggestedAmount}â¬</span>}</label>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (€) {suggestedAmount>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggestedAmount}€</span>}</label>
           <input style={{ ...inp2,width:"100%" }} type="number" value={f.amount} onChange={e=>setF(x=>({...x,amount:e.target.value}))} placeholder={suggestedAmount||"0"}/>
         </div>
         <div style={{ gridColumn:"1/-1" }}><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Notas</label>
@@ -1338,7 +1338,7 @@ const AthletePortal = ({ token }) => {
                   </div>
                   <div style={{ display:"flex",gap:10,flexWrap:"wrap" }}>
                     {o.scholarship_pct>0&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:"rgba(99,102,241,0.1)",color:"#818cf8" }}>Scholarship: {o.scholarship_pct}%</span>}
-                    {o.amount&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:"rgba(16,185,129,0.1)",color:"#10b981" }}>{Number(o.amount).toLocaleString()}â¬/year</span>}
+                    {o.amount&&<span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:"rgba(16,185,129,0.1)",color:"#10b981" }}>{Number(o.amount).toLocaleString()}€/year</span>}
                     <span style={{ padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:`${offerColors[o.status]||"#6b7280"}15`,color:offerColors[o.status]||"#6b7280",border:`1px solid ${offerColors[o.status]||"#6b7280"}25` }}>{o.status}</span>
                   </div>
                 </div>
@@ -1633,7 +1633,7 @@ const EarningsForm = ({ players, agentProfiles, onSave }) => {
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Atleta</label>
           <select style={{ ...inp2,width:"100%",cursor:"pointer" }} value={f.player_id} onChange={e=>setF(x=>({...x,player_id:e.target.value}))}>
             <option value="">Seleccionar atleta...</option>
-            {players.map(p=><option key={p.id} value={p.id}>{p.name} ({p.totalFee||2700}â¬)</option>)}
+            {players.map(p=><option key={p.id} value={p.id}>{p.name} ({p.totalFee||2700}€)</option>)}
           </select>
         </div>
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Reclutador</label>
@@ -1645,7 +1645,7 @@ const EarningsForm = ({ players, agentProfiles, onSave }) => {
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% ComisiÃ³n</label>
           <input style={{ ...inp2,width:"100%" }} type="number" min="0" max="100" value={f.percentage} onChange={e=>setF(x=>({...x,percentage:e.target.value,amount:Math.round((selectedPlayer?.totalFee||2700)*(parseFloat(e.target.value)/100))||""}))} placeholder="20"/>
         </div>
-        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (â¬) {suggested>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggested}â¬</span>}</label>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (€) {suggested>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggested}€</span>}</label>
           <input style={{ ...inp2,width:"100%" }} type="number" value={f.amount} onChange={e=>setF(x=>({...x,amount:e.target.value}))} placeholder={suggested||"500"}/>
         </div>
         <div style={{ gridColumn:"1/-1" }}><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Notas</label>
@@ -2053,7 +2053,7 @@ function AppInner() {
               <div key={s.name} onClick={()=>go("team")} style={{ display:"flex",gap:8,alignItems:"center",padding:"6px 4px",cursor:"pointer",borderRadius:7 }}>
                 <Avatar name={s.name} size={22} photoUrl={s.agent?.photo_url}/>
                 <div style={{ flex:1,minWidth:0 }}><div style={{ fontSize:11,fontWeight:500,color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{s.name.split(" ")[0]}</div></div>
-                <div style={{ fontSize:10,color:"#4b5563",fontWeight:500 }}>{s.total}â¬</div>
+                <div style={{ fontSize:10,color:"#4b5563",fontWeight:500 }}>{s.total}€</div>
               </div>
             ))}
             {/* Current user */}
@@ -2090,9 +2090,9 @@ function AppInner() {
               </div>
               <div className="g4" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18 }}>
                 <Stat label="Atletas" value={visiblePlayers.length} sub={`${visiblePlayers.filter(p=>p.status==="Becado").length} becados`} color="#6366f1"/>
-                <Stat label="Revenue" value={totalFees>0?`${(totalFees/1000).toFixed(1)}kâ¬`:"â"} color="#8b5cf6"/>
-                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}â¬`} color="#10b981" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"â"}/>
-                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}â¬`} color="#f59e0b" sub={`${visiblePlayers.filter(p=>!p.payment2?.paid).length} abiertos`}/>
+                <Stat label="Revenue" value={totalFees>0?`${(totalFees/1000).toFixed(1)}k€`:"â"} color="#8b5cf6"/>
+                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#10b981" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"â"}/>
+                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}€`} color="#f59e0b" sub={`${visiblePlayers.filter(p=>!p.payment2?.paid).length} abiertos`}/>
               </div>
               <div className="g2" style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}>
                 <Card style={{ padding:"18px 20px" }}>
@@ -2103,7 +2103,7 @@ function AppInner() {
                       <div key={s.name}>
                         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5 }}>
                           <div style={{ display:"flex",alignItems:"center",gap:8 }}><Avatar name={s.name} size={22} photoUrl={s.agent?.photo_url}/><span style={{ fontSize:13,fontWeight:600,color:"#374151" }}>{s.name}</span></div>
-                          <span style={{ fontSize:14,fontWeight:700,color:"#1a1a2e" }}>{s.total}â¬</span>
+                          <span style={{ fontSize:14,fontWeight:700,color:"#1a1a2e" }}>{s.total}€</span>
                         </div>
                         <Bar value={s.total} max={totalColl||1} color="#6366f1"/>
                         <div style={{ fontSize:10,color:"#374151",marginTop:3 }}>{s.p1} iniciales Â· {s.p2} segundos Â· {s.count} atletas</div>
@@ -2126,7 +2126,7 @@ function AppInner() {
                       {visiblePlayers.filter(p=>!p.payment1?.paid||!p.payment2?.paid).map(p=>(
                         <div key={p.id} onClick={()=>{ setNav("players"); setSelected(p); }} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(245,158,11,0.04)",border:"1px solid rgba(245,158,11,0.1)",borderRadius:10,cursor:"pointer" }}>
                           <Avatar name={p.name} size={30} photoUrl={p.photoUrl}/>
-                          <div style={{ flex:1,minWidth:0 }}><div style={{ fontSize:12,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.name}</div><div style={{ fontSize:10,color:"#f59e0b" }}>{!p.payment1?.paid?`${p.payment1Amount||900}â¬`:`${p.payment2Amount||1800}â¬`}</div></div>
+                          <div style={{ flex:1,minWidth:0 }}><div style={{ fontSize:12,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.name}</div><div style={{ fontSize:10,color:"#f59e0b" }}>{!p.payment1?.paid?`${p.payment1Amount||900}€`:`${p.payment2Amount||1800}€`}</div></div>
                           <span style={{ fontSize:12,fontWeight:700,color:"#f59e0b",whiteSpace:"nowrap" }}>{!p.payment1?.paid?`Pago 1`:`Pago 2`}</span>
                         </div>
                       ))}
@@ -2181,7 +2181,7 @@ function AppInner() {
                         <div style={{ textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2 }}>Agente</div><div style={{ fontSize:12,fontWeight:600,color:"#a5b4fc" }}>{p.agent?.split(" ")[0]||"â"}</div></div>
                       </div>
                       <div style={{ minWidth:120 }}>
-                        <div style={{ display:"flex",justifyContent:"space-between",fontSize:10,color:"#4b5563",marginBottom:4 }}><span>Cobros</span><span style={{ color:pct>=100?"#10b981":pct>0?"#f59e0b":"#ef4444",fontWeight:600 }}>{paid}â¬</span></div>
+                        <div style={{ display:"flex",justifyContent:"space-between",fontSize:10,color:"#4b5563",marginBottom:4 }}><span>Cobros</span><span style={{ color:pct>=100?"#10b981":pct>0?"#f59e0b":"#ef4444",fontWeight:600 }}>{paid}€</span></div>
                         <Bar value={paid} max={total} color={pct>=100?"#10b981":pct>0?"#f59e0b":"#6366f1"} h={3}/>
                       </div>
                     </div>
@@ -2279,7 +2279,7 @@ function AppInner() {
                           <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:7 }}><UniLogo name={o.university} logoUrl={o.logoUrl} size={26}/><div style={{ fontSize:12,fontWeight:600,color:"#1a1a2e",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{o.university}</div></div>
                           <div style={{ fontSize:10,color:"#6b7280",marginBottom:6 }}>{o.state} Â· {o.division}</div>
                           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:6 }}>
-                            <div>{o.amount&&<div style={{ fontSize:13,fontWeight:700,color:"#10b981" }}>{Number(o.amount).toLocaleString()}â¬</div>}{o.season&&<div style={{ fontSize:10,color:"#f59e0b" }}>{o.season}</div>}</div>
+                            <div>{o.amount&&<div style={{ fontSize:13,fontWeight:700,color:"#10b981" }}>{Number(o.amount).toLocaleString()}€</div>}{o.season&&<div style={{ fontSize:10,color:"#f59e0b" }}>{o.season}</div>}</div>
                             <OBadge s={o.status}/>
                           </div>
                           <Bar value={o.scholarshipPct} max={100} color={OFFER_COLORS[o.status]||"#6366f1"} h={2}/>
@@ -2297,9 +2297,9 @@ function AppInner() {
             <div>
               <div style={{ marginBottom:20 }}><h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>Pagos & Cobros</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>Honorarios personalizados por atleta</p></div>
               <div className="g4" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18 }}>
-                <Stat label="Revenue" value={`${totalFees.toLocaleString()}â¬`} color="#6366f1"/>
-                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}â¬`} color="#10b981" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"â"}/>
-                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}â¬`} color="#f59e0b"/>
+                <Stat label="Revenue" value={`${totalFees.toLocaleString()}€`} color="#6366f1"/>
+                <Stat label="Cobrado" value={`${totalColl.toLocaleString()}€`} color="#10b981" sub={totalFees>0?`${Math.round((totalColl/totalFees)*100)}%`:"â"}/>
+                <Stat label="Pendiente" value={`${(totalFees-totalColl).toLocaleString()}€`} color="#f59e0b"/>
                 <Stat label="Completos" value={visiblePlayers.filter(p=>p.payment1?.paid&&p.payment2?.paid).length} color="#22c55e" sub={`de ${visiblePlayers.length}`}/>
               </div>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12,marginBottom:16 }}>
@@ -2308,7 +2308,7 @@ function AppInner() {
                     <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:12 }}>
                       <Avatar name={s.name} size={38} photoUrl={s.agent?.photo_url}/>
                       <div style={{ flex:1 }}><div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e" }}>{s.name}</div><div style={{ fontSize:11,color:"#6366f1" }}>{s.agent?.role||"Agente"}</div></div>
-                      <div style={{ fontSize:18,fontWeight:700,color:"#1a1a2e" }}>{s.total}â¬</div>
+                      <div style={{ fontSize:18,fontWeight:700,color:"#1a1a2e" }}>{s.total}€</div>
                     </div>
                     <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
                       <div style={{ background:"#f5f0e8",borderRadius:8,padding:"8px" }}><div style={{ fontSize:9,color:"#374151",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4 }}>Pagos iniciales</div><div style={{ fontSize:15,fontWeight:700,color:"#1a1a2e" }}>{s.p1}</div></div>
@@ -2332,7 +2332,7 @@ function AppInner() {
                         </div>
                       </div>
                       <div style={{ flex:1,minWidth:100 }}><Bar value={paid} max={total} color={paid>=total?"#10b981":paid>0?"#f59e0b":"#374151"}/></div>
-                      <div style={{ fontSize:12,fontWeight:700,color:paid>=total?"#10b981":"#f9fafb",minWidth:80,textAlign:"right" }}>{paid}â¬ / {total}â¬</div>
+                      <div style={{ fontSize:12,fontWeight:700,color:paid>=total?"#10b981":"#f9fafb",minWidth:80,textAlign:"right" }}>{paid}€ / {total}€</div>
                     </div>
                   ); })}
                 </div>
@@ -2413,7 +2413,7 @@ function AppInner() {
                   ["Paises",LATAM_COUNTRIES.filter(c=>players.some(p=>p.nationality===c)).length,"#6366f1"],
                   ["Atletas",visiblePlayers.filter(p=>LATAM_COUNTRIES.includes(p.nationality)).length,"#10b981"],
                   ["Leads",visibleLeads.filter(l=>LATAM_COUNTRIES.includes(l.nationality)).length,"#f59e0b"],
-                  ["Revenue",`${visiblePlayers.filter(p=>LATAM_COUNTRIES.includes(p.nationality)).reduce((s,p)=>s+(p.totalFee||2700),0).toLocaleString()}â¬`,"#8b5cf6"],
+                  ["Revenue",`${visiblePlayers.filter(p=>LATAM_COUNTRIES.includes(p.nationality)).reduce((s,p)=>s+(p.totalFee||2700),0).toLocaleString()}€`,"#8b5cf6"],
                 ].map(([l,v,c])=>(
                   <div key={l} style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.05)" }}>
                     <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{l}</div>
@@ -2442,7 +2442,7 @@ function AppInner() {
                         <div style={{ display:"flex",gap:14,fontSize:12,color:"#6b7280" }}>
                           <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#1a1a2e" }}>{apPlayers.length}</div><div style={{ fontSize:10,color:"#9ca3af" }}>atletas</div></div>
                           <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#6366f1" }}>{apLeads.length}</div><div style={{ fontSize:10,color:"#9ca3af" }}>leads</div></div>
-                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#10b981" }}>{apEarnings.toLocaleString()}â¬</div><div style={{ fontSize:10,color:"#9ca3af" }}>ganado</div></div>
+                          <div style={{ textAlign:"center" }}><div style={{ fontSize:16,fontWeight:700,color:"#10b981" }}>{apEarnings.toLocaleString()}€</div><div style={{ fontSize:10,color:"#9ca3af" }}>ganado</div></div>
                         </div>
                         {(isAdmin||isLatamDirector)&&<button onClick={()=>setPermModal(ap)} style={{ padding:"6px 12px",borderRadius:7,border:"1px solid #e8e3db",background:"#fff",color:"#374151",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Permisos</button>}
                       </div>
@@ -2499,7 +2499,7 @@ function AppInner() {
                 </div>
                 <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center" }}>
                   <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Revenue total</div>
-                  <div style={{ fontSize:22,fontWeight:800,color:"#10b981" }}>{(players.reduce((s,p)=>s+(p.totalFee||2700),0)/1000).toFixed(1)}kâ¬</div>
+                  <div style={{ fontSize:22,fontWeight:800,color:"#10b981" }}>{(players.reduce((s,p)=>s+(p.totalFee||2700),0)/1000).toFixed(1)}k€</div>
                 </div>
                 <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:12,padding:"16px",textAlign:"center" }}>
                   <div style={{ fontSize:9,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Reclutadores</div>
@@ -2559,7 +2559,7 @@ function AppInner() {
                       <button onClick={()=>setAgentModal({...agent,photoUrl:agent.photo_url})} style={{ background:"#f0ebe3",border:"none",color:"#6b7280",cursor:"pointer",width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center" }}>{I.edit}</button>
                     </div>
                     <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12 }}>
-                      {[["Atletas",s.count,"#6366f1"],["Cobrado",s.total+"â¬","#10b981"],["Deals",s.p1+s.p2,"#f59e0b"]].map(([l,v,c])=>(
+                      {[["Atletas",s.count,"#6366f1"],["Cobrado",s.total+"€","#10b981"],["Deals",s.p1+s.p2,"#f59e0b"]].map(([l,v,c])=>(
                         <div key={l} style={{ background:"#f5f0e8",borderRadius:8,padding:"8px 10px",textAlign:"center" }}>
                           <div style={{ fontSize:9,color:"#374151",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>{l}</div>
                           <div style={{ fontSize:14,fontWeight:700,color:c }}>{v}</div>
@@ -2595,16 +2595,16 @@ function AppInner() {
                             <div><div style={{ fontSize:14,fontWeight:700,color:"#1a1a2e" }}>{ap.name}</div><div style={{ fontSize:11,color:"#4b5563" }}>{ap.email}</div></div>
                           </div>
                           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
-                            <div style={{ background:"rgba(16,185,129,0.06)",borderRadius:9,padding:"10px",textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",marginBottom:4 }}>Cobrado</div><div style={{ fontSize:16,fontWeight:800,color:"#10b981" }}>{paid.toLocaleString()}â¬</div></div>
-                            <div style={{ background:"rgba(245,158,11,0.06)",borderRadius:9,padding:"10px",textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",marginBottom:4 }}>Pendiente</div><div style={{ fontSize:16,fontWeight:800,color:"#f59e0b" }}>{(total-paid).toLocaleString()}â¬</div></div>
+                            <div style={{ background:"rgba(16,185,129,0.06)",borderRadius:9,padding:"10px",textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",marginBottom:4 }}>Cobrado</div><div style={{ fontSize:16,fontWeight:800,color:"#10b981" }}>{paid.toLocaleString()}€</div></div>
+                            <div style={{ background:"rgba(245,158,11,0.06)",borderRadius:9,padding:"10px",textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",fontWeight:600,textTransform:"uppercase",marginBottom:4 }}>Pendiente</div><div style={{ fontSize:16,fontWeight:800,color:"#f59e0b" }}>{(total-paid).toLocaleString()}€</div></div>
                           </div>
                         </div>
                       );
                     })
                   : <>
-                      <Stat label="Total ganado" value={`${commissions.filter(c=>c.referred_by===profile?.name||c.referred_by===profile?.email).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}â¬`} color="#f59e0b"/>
-                      <Stat label="Cobrado" value={`${commissions.filter(c=>(c.referred_by===profile?.name||c.referred_by===profile?.email)&&c.paid).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}â¬`} color="#10b981"/>
-                      <Stat label="Pendiente" value={`${commissions.filter(c=>(c.referred_by===profile?.name||c.referred_by===profile?.email)&&!c.paid).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}â¬`} color="#ef4444"/>
+                      <Stat label="Total ganado" value={`${commissions.filter(c=>c.referred_by===profile?.name||c.referred_by===profile?.email).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}€`} color="#f59e0b"/>
+                      <Stat label="Cobrado" value={`${commissions.filter(c=>(c.referred_by===profile?.name||c.referred_by===profile?.email)&&c.paid).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}€`} color="#10b981"/>
+                      <Stat label="Pendiente" value={`${commissions.filter(c=>(c.referred_by===profile?.name||c.referred_by===profile?.email)&&!c.paid).reduce((s,c)=>s+(c.amount||0),0).toLocaleString()}€`} color="#ef4444"/>
                     </>
                 }
               </div>
@@ -2630,7 +2630,7 @@ function AppInner() {
                         </div>
                       </div>
                       <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:16,fontWeight:800,color:c.paid?"#10b981":"#f59e0b" }}>{(c.amount||0).toLocaleString()}â¬</div>
+                        <div style={{ fontSize:16,fontWeight:800,color:c.paid?"#10b981":"#f59e0b" }}>{(c.amount||0).toLocaleString()}€</div>
                         <div style={{ fontSize:10,color:c.paid?"#10b981":"#f59e0b",marginTop:2 }}>{c.paid?`â Pagado ${c.paid_date||""}`:"Pendiente"}</div>
                       </div>
                       {isAdmin&&<div style={{ display:"flex",flexDirection:"column",gap:5 }}>

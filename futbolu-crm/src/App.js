@@ -142,7 +142,7 @@ const I = {
 
 // âââ DB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const dbToPlayer = (row,offers=[],timeline=[]) => ({
-  id:row.id,name:row.name,sport:row.sport||"FÃºtbol",nationality:row.nationality,age:row.age,
+  id:row.id,name:row.name,sport:row.sport||"Fútbol",nationality:row.nationality,age:row.age,
   position:row.position,foot:row.foot,height:row.height,weight:row.weight,
   status:row.status||"Prospecto",agent:row.agent,phone:row.phone,email:row.email,
   instagram:row.instagram,videoUrl:row.video_url,photoUrl:row.photo_url,
@@ -266,7 +266,7 @@ const PaymentRow = ({ label, amount, payment, onToggle, agents }) => (
     </div>
     <div style={{ flex:1 }}>
       <div style={{ fontSize:13,fontWeight:600,color:"#374151" }}>{label} <span style={{ color:"#1a1a2e",fontWeight:800 }}>{amount}€</span></div>
-      {payment.paid?<div style={{ fontSize:11,color:"#6b7280",marginTop:2 }}>Cobrado por <span style={{ color:"#818cf8",fontWeight:700 }}>{payment.paidBy}</span> Â· {payment.date}</div>:<div style={{ fontSize:11,color:"#f59e0b",marginTop:2 }}>Pendiente de cobro</div>}
+      {payment.paid?<div style={{ fontSize:11,color:"#6b7280",marginTop:2 }}>Cobrado por <span style={{ color:"#818cf8",fontWeight:700 }}>{payment.paidBy}</span> · {payment.date}</div>:<div style={{ fontSize:11,color:"#f59e0b",marginTop:2 }}>Pendiente de cobro</div>}
     </div>
     <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
       {!payment.paid&&(agents||[]).map(a=><button key={a} onClick={()=>onToggle(a)} style={{ padding:"5px 10px",borderRadius:7,border:"1px solid rgba(99,102,241,0.3)",background:"rgba(99,102,241,0.1)",color:"#818cf8",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>â {a.split(" ")[0]}</button>)}
@@ -382,7 +382,7 @@ const OfferModal = ({ onClose, onAdd }) => {
         {!f.university&&<div><label style={lbl}>O escribe manualmente</label><input style={inp} value={f.university} onChange={e=>setF(p=>({...p,university:e.target.value}))} placeholder="Nombre universidad"/></div>}
         <G2>
           <div><label style={lbl}>Estado USA</label><input style={inp} value={f.state} onChange={e=>setF(p=>({...p,state:e.target.value}))} placeholder="TX, FL..."/></div>
-          <div><label style={lbl}>DivisiÃ³n</label><select style={{ ...inp,cursor:"pointer" }} value={f.division} onChange={e=>setF(p=>({...p,division:e.target.value}))}>{DIVISIONS.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div><label style={lbl}>División</label><select style={{ ...inp,cursor:"pointer" }} value={f.division} onChange={e=>setF(p=>({...p,division:e.target.value}))}>{DIVISIONS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div><label style={lbl}>% Beca</label><input style={inp} type="number" min="0" max="100" value={f.scholarshipPct} onChange={e=>setF(p=>({...p,scholarshipPct:e.target.value}))}/></div>
           <div><label style={lbl}>Importe anual (€)</label><input style={inp} type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} placeholder="20000"/></div>
           <div><label style={lbl}>Temporada</label><select style={{ ...inp,cursor:"pointer" }} value={f.season} onChange={e=>setF(p=>({...p,season:e.target.value}))}>{SEASONS.map(s=><option key={s}>{s}</option>)}</select></div>
@@ -390,7 +390,7 @@ const OfferModal = ({ onClose, onAdd }) => {
           <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Logo (opcional)</label><PhotoUpload currentUrl={f.logoUrl} onUpload={u=>setF(p=>({...p,logoUrl:u}))} size={44}/></div>
           <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Notas</label><input style={inp} value={f.notes} onChange={e=>setF(p=>({...p,notes:e.target.value}))} placeholder="Detalles..."/></div>
         </G2>
-        <div style={{ display:"flex",gap:10,marginTop:6 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={async()=>{ if(f.university&&!saving){ setSaving(true); await onAdd({...f,scholarshipPct:parseInt(f.scholarshipPct)||0,amount:parseFloat(f.amount)||null}); setSaving(false); onClose(); }}} disabled={saving}>{saving?"Guardando...":"AÃ±adir oferta"}</Btn></div></div>
+        <div style={{ display:"flex",gap:10,marginTop:6 }}><div style={{ flex:1 }}><Btn variant="ghost" onClick={onClose}>Cancelar</Btn></div><div style={{ flex:2 }}><Btn onClick={async()=>{ if(f.university&&!saving){ setSaving(true); await onAdd({...f,scholarshipPct:parseInt(f.scholarshipPct)||0,amount:parseFloat(f.amount)||null}); setSaving(false); onClose(); }}} disabled={saving}>{saving?"Guardando...":"Añadir oferta"}</Btn></div></div>
       </div>
     </Modal>
   );
@@ -480,9 +480,9 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
   const updateOfferStatus=async(id,status)=>{ await supabase.from("offers").update({status}).eq("id",id); await onRefresh(); };
   const removeOffer=async(id)=>{ await supabase.from("offers").delete().eq("id",id); await onRefresh(); };
 
-  const tabs=[{id:"profile",l:"Perfil"},{id:"sports",l:"Deportivo"},{id:"academic",l:"AcadÃ©mico"},{id:"offers",l:`Ofertas (${player.offers?.length||0})`},{id:"payments",l:"Pagos"},{id:"admission",l:"Proceso"},{id:"documents",l:`Docs (${playerDocs.length}/${REQUIRED_DOCS.length})`},{id:"timeline",l:"Historial"}];
+  const tabs=[{id:"profile",l:"Perfil"},{id:"sports",l:"Deportivo"},{id:"academic",l:"Académico"},{id:"offers",l:`Ofertas (${player.offers?.length||0})`},{id:"payments",l:"Pagos"},{id:"admission",l:"Proceso"},{id:"documents",l:`Docs (${playerDocs.length}/${REQUIRED_DOCS.length})`},{id:"timeline",l:"Historial"}];
   const tlC={contact:"#6366f1",contract:"#8b5cf6",milestone:"#10b981",achievement:"#f59e0b",payment:"#22c55e"};
-  const tlE={contact:"ð",contract:"âï¸",milestone:"ð¯",achievement:"ð",payment:"ð°"};
+  const tlE={contact:"",contract:"âï¸",milestone:"",achievement:"",payment:""};
 
   const InfoCard = ({ label, value, color }) => (
     <div style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:10,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
@@ -516,7 +516,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
               {player.sport&&<span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(99,102,241,0.1)",color:"#6366f1",fontSize:12,fontWeight:600,border:"1px solid rgba(99,102,241,0.2)" }}>{player.sport}</span>}
               {player.position&&<span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(139,92,246,0.08)",color:"#8b5cf6",fontSize:12,fontWeight:600,border:"1px solid rgba(139,92,246,0.15)" }}>{player.position}</span>}
               {player.nationality&&<span style={{ padding:"4px 12px",borderRadius:20,background:"#f9f7f4",color:"#6b7280",fontSize:12,fontWeight:500,border:"1px solid #e8e3db" }}>{player.nationality}</span>}
-              {player.age&&<span style={{ padding:"4px 12px",borderRadius:20,background:"#f9f7f4",color:"#6b7280",fontSize:12,fontWeight:500,border:"1px solid #e8e3db" }}>{player.age} aÃ±os</span>}
+              {player.age&&<span style={{ padding:"4px 12px",borderRadius:20,background:"#f9f7f4",color:"#6b7280",fontSize:12,fontWeight:500,border:"1px solid #e8e3db" }}>{player.age} años</span>}
               {player.agent&&<span style={{ padding:"4px 12px",borderRadius:20,background:"rgba(16,185,129,0.08)",color:"#10b981",fontSize:12,fontWeight:600,border:"1px solid rgba(16,185,129,0.15)" }}>Agente: {player.agent}</span>}
             </div>
             <div style={{ display:"flex",gap:10,flexWrap:"wrap",alignItems:"center" }}>
@@ -537,7 +537,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
 
       {tab==="profile"&&<div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10,marginBottom:12 }}>
-          {[["Email",player.email],["Telefono",player.phone],["Instagram",player.instagram],["Nacionalidad",player.nationality],["Edad",player.age?`${player.age} aÃ±os`:null],["Agente",player.agent]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
+          {[["Email",player.email],["Telefono",player.phone],["Instagram",player.instagram],["Nacionalidad",player.nationality],["Edad",player.age?`${player.age} años`:null],["Agente",player.agent]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
         </div>
         {player.videoUrl&&<div style={{ background:"#fff",border:"1px solid rgba(239,68,68,0.15)",borderRadius:12,padding:"14px 18px",marginBottom:10 }}>
           <div style={{ fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>Video highlight</div>
@@ -563,16 +563,16 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
 
       {tab==="academic"&&<div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12 }}>
-          {[["GPA",player.gpa||"â",player.gpa>=3.5?"#10b981":player.gpa>=3?"#f59e0b":"#ef4444"],["SAT",player.satScore||"â","#6366f1"],["TOEFL",player.toeflScore||"â","#8b5cf6"],["InglÃ©s",player.englishLevel||"â","#3b82f6"]].map(([l,v,c])=>(
+          {[["GPA",player.gpa||"â",player.gpa>=3.5?"#10b981":player.gpa>=3?"#f59e0b":"#ef4444"],["SAT",player.satScore||"â","#6366f1"],["TOEFL",player.toeflScore||"â","#8b5cf6"],["Inglés",player.englishLevel||"â","#3b82f6"]].map(([l,v,c])=>(
             <div key={l} style={{ background:"#f0ebe3",border:`1px solid ${c}15`,borderRadius:10,padding:"14px",textAlign:"center" }}><div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>{l}</div><div style={{ fontSize:20,fontWeight:800,color:c }}>{v}</div></div>
           ))}
         </div>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8,marginBottom:12 }}>
-          {[["High School",player.highSchool],["GraduaciÃ³n",player.graduationYear],["Carrera",player.major],["Nivel inglÃ©s",player.englishLevel]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
+          {[["High School",player.highSchool],["Graduación",player.graduationYear],["Carrera",player.major],["Nivel inglés",player.englishLevel]].map(([l,v])=><InfoCard key={l} label={l} value={v}/>)}
         </div>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
           {player.budget&&<div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.12)",borderRadius:10,padding:"12px 14px" }}>
-            <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>Budget anual mÃ¡ximo</div>
+            <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:1,marginBottom:4,fontWeight:600 }}>Budget anual máximo</div>
             <div style={{ fontSize:16,fontWeight:800,color:"#10b981" }}>${Number(player.budget).toLocaleString()}</div>
           </div>}
           <div style={{ background:player.fafsa?"rgba(16,185,129,0.05)":"rgba(239,68,68,0.04)",border:`1px solid ${player.fafsa?"rgba(16,185,129,0.12)":"rgba(239,68,68,0.1)"}`,borderRadius:10,padding:"12px 14px" }}>
@@ -587,7 +587,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
           <span style={{ fontSize:12,color:"#6b7280" }}>{player.offers?.length||0} universidades</span>
           <button onClick={()=>setOfferModal(true)} style={{ display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:"none",background:"#6366f1",color:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nueva oferta</button>
         </div>
-        {(!player.offers||player.offers.length===0)&&<div style={{ textAlign:"center",padding:"40px",color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>ðï¸</div><div>Sin ofertas registradas</div></div>}
+        {(!player.offers||player.offers.length===0)&&<div style={{ textAlign:"center",padding:"40px",color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>ï¸</div><div>Sin ofertas registradas</div></div>}
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
           {(player.offers||[]).sort((a,b)=>(b.amount||0)-(a.amount||0)).map(offer=>(
             <div key={offer.id} style={{ background:"#f0ebe3",border:`1px solid ${offer.status==="Elegida â"?"rgba(34,197,94,0.2)":"rgba(255,255,255,0.05)"}`,borderRadius:12,padding:"14px 16px" }}>
@@ -600,7 +600,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
                   </div>
                   <div style={{ display:"flex",gap:12,flexWrap:"wrap",fontSize:12,color:"#6b7280",marginBottom:7 }}>
                     {offer.state&&<span>{offer.state}</span>}
-                    {offer.amount&&<span style={{ color:"#10b981",fontWeight:700 }}>{Number(offer.amount).toLocaleString()}€/aÃ±o</span>}
+                    {offer.amount&&<span style={{ color:"#10b981",fontWeight:700 }}>{Number(offer.amount).toLocaleString()}€/año</span>}
                     {offer.season&&<span style={{ color:"#f59e0b",fontWeight:600 }}>{offer.season}</span>}
                     <span>Beca: <span style={{ color:"#6366f1",fontWeight:700 }}>{offer.scholarshipPct}%</span></span>
                   </div>
@@ -643,7 +643,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
 
       {tab==="documents"&&<div>
         <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:12,fontSize:12,color:"#818cf8" }}>
-          ð Documentos subidos por el atleta desde su portal personal. Haz clic en cada archivo para descargarlo.
+           Documentos subidos por el atleta desde su portal personal. Haz clic en cada archivo para descargarlo.
         </div>
         {/* Portal link */}
         <div style={{ background:"rgba(16,185,129,0.05)",border:"1px solid rgba(16,185,129,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:12 }}>
@@ -662,7 +662,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
             const uploaded = playerDocs.find(d=>d.doc_type===doc.id);
             return (
               <div key={doc.id} style={{ display:"flex",alignItems:"center",gap:12,background:"#f0ebe3",border:`1px solid ${uploaded?"rgba(16,185,129,0.18)":"rgba(255,255,255,0.05)"}`,borderRadius:12,padding:"13px 16px" }}>
-                <div style={{ fontSize:18,flexShrink:0 }}>{uploaded?"â":"ð"}</div>
+                <div style={{ fontSize:18,flexShrink:0 }}>{uploaded?"â":""}</div>
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontSize:13,fontWeight:600,color:"#1a1a2e" }}>{doc.label}</div>
                   <div style={{ fontSize:11,color:"#4b5563",marginTop:2 }}>{doc.desc}</div>
@@ -687,7 +687,7 @@ const PlayerDetail = ({ player, onBack, onRefresh, agentList, onGenerateToken })
 
 const LeadDetail = ({ lead, onClose, onConvert, onDelete }) => {
   const sd = lead.sport_data ? (typeof lead.sport_data==="string"?JSON.parse(lead.sport_data):lead.sport_data) : {};
-  const sportEmoji = { Soccer:"â½",Tennis:"ð¾",Swimming:"ð",Baseball:"â¾",Basketball:"ð","Track & Field":"ð",Golf:"â³",Volleyball:"ð" };
+  const sportEmoji = { Soccer:"â½",Tennis:"",Swimming:"",Baseball:"â¾",Basketball:"","Track & Field":"",Golf:"â³",Volleyball:"" };
   const Section = ({ title, color, children }) => (
     <div style={{ background:"#faf8f5",borderRadius:12,padding:"16px 18px",border:"1px solid #ede8e0" }}>
       <div style={{ fontSize:10,fontWeight:700,color:color||"#4b5563",textTransform:"uppercase",letterSpacing:1.5,marginBottom:12 }}>{title}</div>
@@ -709,7 +709,7 @@ const LeadDetail = ({ lead, onClose, onConvert, onDelete }) => {
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
             <div>
               <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
-                <span style={{ fontSize:24 }}>{sportEmoji[lead.sport]||"ð¯"}</span>
+                <span style={{ fontSize:24 }}>{sportEmoji[lead.sport]||""}</span>
                 <h2 style={{ margin:0,fontSize:22,fontWeight:800,color:"#1a1a2e",letterSpacing:-0.5 }}>{lead.name}</h2>
               </div>
               <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
@@ -724,11 +724,11 @@ const LeadDetail = ({ lead, onClose, onConvert, onDelete }) => {
           {/* Budget highlight */}
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:14 }}>
             <div style={{ background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.2)",borderRadius:12,padding:"14px 16px",textAlign:"center" }}>
-              <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>ð° Annual Budget</div>
+              <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}> Annual Budget</div>
               <div style={{ fontSize:22,fontWeight:900,color:"#10b981" }}>{lead.budget?`$${Number(lead.budget).toLocaleString()}`:"Not specified"}</div>
             </div>
             <div style={{ background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.18)",borderRadius:12,padding:"14px 16px",textAlign:"center" }}>
-              <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}>ð Scholarship Sought</div>
+              <div style={{ fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6,fontWeight:600 }}> Scholarship Sought</div>
               <div style={{ fontSize:22,fontWeight:900,color:"#818cf8" }}>{lead.scholarship_pct?`${lead.scholarship_pct}%`:"â"}</div>
             </div>
           </div>
@@ -787,8 +787,8 @@ const LeadDetail = ({ lead, onClose, onConvert, onDelete }) => {
 
           {/* Actions */}
           <div style={{ display:"flex",gap:10,marginTop:4 }}>
-            <button onClick={()=>{ if(window.confirm(`Â¿Convertir a ${lead.name} en atleta?`)){ onConvert(lead); onClose(); }}} style={{ flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit" }}>â Convertir en atleta</button>
-            <button onClick={()=>{ if(window.confirm(`Â¿Eliminar lead ${lead.name}?`)){ onDelete(lead.id); onClose(); }}} style={{ flex:1,padding:"12px",borderRadius:10,border:"1px solid rgba(239,68,68,0.2)",background:"rgba(239,68,68,0.06)",color:"#ef4444",cursor:"pointer",fontSize:13,fontFamily:"inherit" }}>Eliminar</button>
+            <button onClick={()=>{ if(window.confirm(`¿Convertir a ${lead.name} en atleta?`)){ onConvert(lead); onClose(); }}} style={{ flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit" }}>â Convertir en atleta</button>
+            <button onClick={()=>{ if(window.confirm(`¿Eliminar lead ${lead.name}?`)){ onDelete(lead.id); onClose(); }}} style={{ flex:1,padding:"12px",borderRadius:10,border:"1px solid rgba(239,68,68,0.2)",background:"rgba(239,68,68,0.06)",color:"#ef4444",cursor:"pointer",fontSize:13,fontFamily:"inherit" }}>Eliminar</button>
           </div>
         </div>
       </div>
@@ -814,7 +814,7 @@ const CommissionForm = ({ players, onSave, onRefresh }) => {
   };
   return (
     <Card style={{ padding:"18px 20px",border:"1px solid rgba(245,158,11,0.12)" }}>
-      <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>Nueva comisiÃ³n</div>
+      <div style={{ fontSize:11,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:1.2,marginBottom:14 }}>Nueva comisión</div>
       <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Atleta</label>
           <select style={{ ...inp2,width:"100%",cursor:"pointer" }} value={f.player_id} onChange={e=>setF(x=>({...x,player_id:e.target.value}))}>
@@ -825,7 +825,7 @@ const CommissionForm = ({ players, onSave, onRefresh }) => {
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Referido por</label>
           <input style={{ ...inp2,width:"100%" }} value={f.referred_by} onChange={e=>setF(x=>({...x,referred_by:e.target.value}))} placeholder="Nombre del referidor"/>
         </div>
-        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% ComisiÃ³n</label>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% Comisión</label>
           <input style={{ ...inp2,width:"100%" }} type="number" min="0" max="100" value={f.percentage} onChange={e=>setF(x=>({...x,percentage:e.target.value}))}/>
         </div>
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (€) {suggestedAmount>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggestedAmount}€</span>}</label>
@@ -836,7 +836,7 @@ const CommissionForm = ({ players, onSave, onRefresh }) => {
         </div>
       </div>
       <button onClick={save} disabled={saving||!f.player_id||!f.referred_by} style={{ marginTop:14,width:"100%",padding:"10px",borderRadius:9,border:"none",background:(!f.player_id||!f.referred_by)?"rgba(255,255,255,0.04)":"linear-gradient(135deg,#f59e0b,#d97706)",color:(!f.player_id||!f.referred_by)?"#4b5563":"#fff",cursor:(!f.player_id||!f.referred_by)?"default":"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:saving?0.7:1 }}>
-        {saving?"Guardando...":"+ AÃ±adir comisiÃ³n"}
+        {saving?"Guardando...":"+ Añadir comisión"}
       </button>
     </Card>
   );
@@ -976,7 +976,7 @@ const LeadForm = () => {
               <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>
                 {SPORTS_LIST.map(s=>(
                   <div key={s} onClick={()=>set("sport",s)} style={{ padding:"12px 6px", borderRadius:10, border:`2px solid ${form.sport===s?"#6366f1":"#e8e3db"}`, background:form.sport===s?"rgba(99,102,241,0.06)":"#f9f7f4", cursor:"pointer", textAlign:"center" }}>
-                    <div style={{ fontSize:22, marginBottom:4 }}>{{ Soccer:"â½", Tennis:"ð¾", Golf:"â³", Volleyball:"ð", "Track & Field":"ð" }[s]}</div>
+                    <div style={{ fontSize:22, marginBottom:4 }}>{{ Soccer:"â½", Tennis:"", Golf:"â³", Volleyball:"", "Track & Field":"" }[s]}</div>
                     <div style={{ fontSize:10, fontWeight:600, color:form.sport===s?"#6366f1":"#9ca3af" }}>{s}</div>
                   </div>
                 ))}
@@ -999,7 +999,7 @@ const LeadForm = () => {
                   {["A1","A2","B1","B2","C1","C2","Native"].map(l=><option key={l}>{l}</option>)}
                 </select>
               </div>
-              <div><label style={lbl}>AÃ±o de graduacion</label><input style={inp} type="number" value={form.graduation_year} onChange={e=>set("graduation_year",e.target.value)} placeholder="2025"/></div>
+              <div><label style={lbl}>Año de graduacion</label><input style={inp} type="number" value={form.graduation_year} onChange={e=>set("graduation_year",e.target.value)} placeholder="2025"/></div>
               <div><label style={lbl}>Carrera deseada</label><input style={inp} value={form.major} onChange={e=>set("major",e.target.value)} placeholder="Business, Marketing..."/></div>
               <div><label style={lbl}>Beca buscada (%)</label><input style={inp} type="number" value={form.scholarship_pct} onChange={e=>set("scholarship_pct",e.target.value)} placeholder="50"/></div>
               <div><label style={lbl}>Presupuesto anual max (USD)</label><input style={inp} type="number" value={form.budget} onChange={e=>set("budget",e.target.value)} placeholder="25000"/></div>
@@ -1019,7 +1019,7 @@ const LeadForm = () => {
         </div>
 
         <div style={{ textAlign:"center", marginTop:20, fontSize:12, color:"#9ca3af" }}>
-          Â¿Preguntas? <strong style={{ color:"#374151" }}>futboluagency@gmail.com</strong> Â· WhatsApp <strong style={{ color:"#374151" }}>+34 603 331 990</strong>
+          ¿Preguntas? <strong style={{ color:"#374151" }}>futboluagency@gmail.com</strong> · WhatsApp <strong style={{ color:"#374151" }}>+34 603 331 990</strong>
         </div>
       </div>
     </div>
@@ -1051,7 +1051,7 @@ const PublicPlayerPage = ({ playerId }) => {
 
   if(!player) return (
     <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#f5f0e8",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12 }}>
-      <div style={{ fontSize:32 }}>ð</div>
+      <div style={{ fontSize:32 }}></div>
       <div style={{ fontSize:16,fontWeight:600,color:"#1a1a2e" }}>Profile not found</div>
       <div style={{ fontSize:13,color:"#374151" }}>This athlete profile may have been removed.</div>
     </div>
@@ -1161,7 +1161,7 @@ const PublicPlayerPage = ({ playerId }) => {
         {/* Footer */}
         <div style={{ textAlign:"center",marginTop:32,paddingTop:24,borderTop:"1px solid rgba(255,255,255,0.04)" }}>
           <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:28,objectFit:"contain",marginBottom:8,opacity:0.5 }}/>
-          <div style={{ fontSize:11,color:"#374151" }}>Profile provided by FUTBOLUAGENCY Â· Athlete recruitment specialists</div>
+          <div style={{ fontSize:11,color:"#374151" }}>Profile provided by FUTBOLUAGENCY · Athlete recruitment specialists</div>
         </div>
       </div>
     </div>
@@ -1171,10 +1171,10 @@ const PublicPlayerPage = ({ playerId }) => {
 // âââ REQUIRED DOCUMENTS ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const REQUIRED_DOCS = [
   { id:"passport", label:"Passport (scanned)", desc:"Valid passport â all pages" },
-  { id:"grades_eso3", label:"3Âº ESO Grades", desc:"Official transcript with school stamp & signature" },
-  { id:"grades_eso4", label:"4Âº ESO Grades", desc:"Official transcript with school stamp & signature" },
-  { id:"grades_bach1", label:"1Âº Bachillerato Grades", desc:"Official transcript with school stamp & signature" },
-  { id:"grades_bach2", label:"2Âº Bachillerato Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_eso3", label:"3º ESO Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_eso4", label:"4º ESO Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_bach1", label:"1º Bachillerato Grades", desc:"Official transcript with school stamp & signature" },
+  { id:"grades_bach2", label:"2º Bachillerato Grades", desc:"Official transcript with school stamp & signature" },
   { id:"vaccines", label:"Vaccination Record", desc:"Official vaccination certificate" },
   { id:"gpa_cert", label:"GPA Certificate", desc:"Official GPA document from school" },
   { id:"english_cert", label:"English Certificate", desc:"TOEFL, IELTS or equivalent" },
@@ -1217,9 +1217,9 @@ const AthletePortal = ({ token }) => {
       // Check if doc already exists
       const existing = documents.find(d=>d.doc_type===docType);
       if(existing){
-        await supabase.from("documents").update({file_url:fileUrl,file_name:file.name,status:"Pendiente de revisiÃ³n",created_at:new Date().toISOString()}).eq("id",existing.id);
+        await supabase.from("documents").update({file_url:fileUrl,file_name:file.name,status:"Pendiente de revisión",created_at:new Date().toISOString()}).eq("id",existing.id);
       } else {
-        await supabase.from("documents").insert({player_id:player.id,name:docLabel,file_name:file.name,file_url:fileUrl,doc_type:docType,status:"Pendiente de revisiÃ³n"});
+        await supabase.from("documents").insert({player_id:player.id,name:docLabel,file_name:file.name,file_url:fileUrl,doc_type:docType,status:"Pendiente de revisión"});
       }
       const {data:docsData} = await supabase.from("documents").select("*").eq("player_id",player.id);
       setDocuments(docsData||[]);
@@ -1236,10 +1236,10 @@ const AthletePortal = ({ token }) => {
 
   if(!player) return (
     <div style={{ fontFamily:"'Inter',system-ui,sans-serif",background:"#f5f0e8",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,padding:20 }}>
-      <div style={{ fontSize:32,marginBottom:8 }}>ð</div>
+      <div style={{ fontSize:32,marginBottom:8 }}></div>
       <div style={{ fontSize:18,fontWeight:700,color:"#1a1a2e" }}>Invalid access link</div>
       <div style={{ fontSize:13,color:"#6b7280",textAlign:"center" }}>This link is not valid. Please contact your agent at FUTBOLUAGENCY.</div>
-      <div style={{ marginTop:16,fontSize:13,color:"#818cf8" }}>ð± WhatsApp: +34 603 331 990</div>
+      <div style={{ marginTop:16,fontSize:13,color:"#818cf8" }}> WhatsApp: +34 603 331 990</div>
     </div>
   );
 
@@ -1318,13 +1318,13 @@ const AthletePortal = ({ token }) => {
             </div>
           </div>
           <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"14px 18px",fontSize:12,color:"#818cf8" }}>
-            ð¬ Questions? Contact your agent: <strong>futboluagency@gmail.com</strong> Â· WhatsApp <strong>+34 603 331 990</strong>
+             Questions? Contact your agent: <strong>futboluagency@gmail.com</strong> · WhatsApp <strong>+34 603 331 990</strong>
           </div>
         </div>}
 
         {/* OFFERS TAB */}
         {tab==="offers"&&<div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-          {offers.filter(o=>o.status!=="Declined").length===0&&<div style={{ textAlign:"center",padding:40,color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>ðï¸</div><div>No offers yet â your agent is working on it!</div></div>}
+          {offers.filter(o=>o.status!=="Declined").length===0&&<div style={{ textAlign:"center",padding:40,color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>ï¸</div><div>No offers yet â your agent is working on it!</div></div>}
           {offers.filter(o=>o.status!=="Declined").sort((a,b)=>(b.amount||0)-(a.amount||0)).map(o=>(
             <div key={o.id} style={{ background:"#faf8f5",border:`1px solid ${o.status==="Chosen â"?"rgba(34,197,94,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:14,padding:"16px 18px" }}>
               <div style={{ display:"flex",alignItems:"flex-start",gap:12 }}>
@@ -1350,7 +1350,7 @@ const AthletePortal = ({ token }) => {
         {/* PROCESS TAB */}
         {tab==="process"&&<div>
           <div style={{ background:"rgba(99,102,241,0.06)",border:"1px solid rgba(99,102,241,0.12)",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:13,color:"#818cf8" }}>
-            ð¯ Track your admission process. Your agent will update each step as you progress.
+             Track your admission process. Your agent will update each step as you progress.
           </div>
           <AdmissionChecklist playerId={player.id} isAdmin={false}/>
         </div>}
@@ -1358,7 +1358,7 @@ const AthletePortal = ({ token }) => {
         {/* DOCUMENTS TAB */}
         {tab==="documents"&&<div>
           <div style={{ background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"12px 16px",marginBottom:14,fontSize:13,color:"#fbbf24" }}>
-            ð Upload all required documents. Files are securely stored and reviewed by FUTBOLUAGENCY. Accepted formats: PDF, JPG, PNG.
+             Upload all required documents. Files are securely stored and reviewed by FUTBOLUAGENCY. Accepted formats: PDF, JPG, PNG.
           </div>
           <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
             {REQUIRED_DOCS.map(doc=>{
@@ -1367,12 +1367,12 @@ const AthletePortal = ({ token }) => {
               return (
                 <div key={doc.id} style={{ background:"#faf8f5",border:`1px solid ${uploaded?"rgba(16,185,129,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:14 }}>
                   <div style={{ width:36,height:36,borderRadius:9,background:uploaded?"rgba(16,185,129,0.12)":"rgba(255,255,255,0.04)",border:`1px solid ${uploaded?"rgba(16,185,129,0.25)":"rgba(255,255,255,0.08)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0 }}>
-                    {uploaded?"â":"ð"}
+                    {uploaded?"â":""}
                   </div>
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontSize:13,fontWeight:600,color:"#1a1a2e",marginBottom:2 }}>{doc.label}</div>
                     <div style={{ fontSize:11,color:"#4b5563" }}>{doc.desc}</div>
-                    {uploaded&&<div style={{ fontSize:11,color:"#10b981",marginTop:3 }}>â {uploaded.file_name} Â· {uploaded.status}</div>}
+                    {uploaded&&<div style={{ fontSize:11,color:"#10b981",marginTop:3 }}>â {uploaded.file_name} · {uploaded.status}</div>}
                   </div>
                   <div style={{ flexShrink:0 }}>
                     <input ref={el=>fileRefs.current[doc.id]=el} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>{ const f=e.target.files[0]; if(f) uploadDoc(doc.id,doc.label,f); }}/>
@@ -1394,7 +1394,7 @@ const FOLLOW_UP_STATUSES = [
   { id:"new", label:"Nuevo", color:"#6366f1" },
   { id:"eligible", label:"Elegible", color:"#10b981" },
   { id:"not_eligible", label:"No elegible", color:"#ef4444" },
-  { id:"next_year", label:"Proximo aÃ±o", color:"#f59e0b" },
+  { id:"next_year", label:"Proximo año", color:"#f59e0b" },
   { id:"in_progress", label:"En proceso", color:"#3b82f6" },
   { id:"signed", label:"Firmado", color:"#22c55e" },
 ];
@@ -1434,7 +1434,7 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
 
     // Send email to ALL recruiters + CEO when anyone writes in chat
     const msgText = newMsg.trim();
-    const emailBody = `Nuevo mensaje en el lead ${lead.name}:\n\n"${msgText}"\n\nEscrito por: ${profile?.name||"Equipo"}\nDeporte: ${lead.sport||"â"} Â· ${lead.nationality||"â"}`;
+    const emailBody = `Nuevo mensaje en el lead ${lead.name}:\n\n"${msgText}"\n\nEscrito por: ${profile?.name||"Equipo"}\nDeporte: ${lead.sport||"â"} · ${lead.nationality||"â"}`;
     const CEO_EMAIL = "futboluagency@gmail.com";
     
     // Always notify CEO
@@ -1558,7 +1558,7 @@ const LeadDetailFull = ({ lead, onClose, onConvert, onDelete, onRefresh, profile
               <textarea style={{ ...inp,width:"100%",minHeight:100,resize:"vertical" }} value={followUpNotes} onChange={e=>setFollowUpNotes(e.target.value)} placeholder="Razon por la que no es elegible ahora, que falta, cuando volver a contactar..."/>
             </div>
             {followUpStatus==="next_year"&&<div style={{ background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#92400e" }}>
-              Este lead se guardara para el proximo aÃ±o. Aparecera en seguimientos pendientes cuando llegue la fecha.
+              Este lead se guardara para el proximo año. Aparecera en seguimientos pendientes cuando llegue la fecha.
             </div>}
             <button onClick={saveFollowUp} disabled={savingFollow} style={{ padding:"11px",borderRadius:10,border:"none",background:"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:savingFollow?0.7:1 }}>
               {savingFollow?"Guardando...":"Guardar seguimiento"}
@@ -1642,7 +1642,7 @@ const EarningsForm = ({ players, agentProfiles, onSave }) => {
             {agentProfiles.filter(p=>p.role!=="admin"&&p.role!=="ceo").map(p=><option key={p.id} value={p.name}>{p.name}</option>)}
           </select>
         </div>
-        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% ComisiÃ³n</label>
+        <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>% Comisión</label>
           <input style={{ ...inp2,width:"100%" }} type="number" min="0" max="100" value={f.percentage} onChange={e=>setF(x=>({...x,percentage:e.target.value,amount:Math.round((selectedPlayer?.totalFee||2700)*(parseFloat(e.target.value)/100))||""}))} placeholder="20"/>
         </div>
         <div><label style={{ fontSize:10,fontWeight:600,color:"#6b7280",textTransform:"uppercase",letterSpacing:0.8,marginBottom:5,display:"block" }}>Importe (€) {suggested>0&&<span style={{ color:"#f59e0b" }}>sugerido: {suggested}€</span>}</label>
@@ -1833,7 +1833,7 @@ function AppInner() {
   const [menuOpen,setMenuOpen]=useState(false);
   const [currentAgent,setCurrentAgent]=useState(null); // agent from URL
 
-  const agentNames=agents.length>0?agents.map(a=>a.name):["Moha","Ignacio de BÃ©jar"];
+  const agentNames=agents.length>0?agents.map(a=>a.name):["Moha","Ignacio de Béjar"];
 
   // Check URL for agent link
   useEffect(()=>{
@@ -2064,7 +2064,7 @@ function AppInner() {
                   <div style={{ fontSize:11,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{profile?.name||user?.email?.split("@")[0]}</div>
                   <div style={{ fontSize:9,color:isAdmin?"#f59e0b":isLatamDirector?"#10b981":"#6b7280" }}>{isAdmin?"CEO":isLatamDirector?"Director LATAM":"Reclutador"}</div>
                 </div>
-                <button onClick={signOut} style={{ background:"none",border:"none",color:"#4b5563",cursor:"pointer",fontSize:11,fontFamily:"inherit",padding:"2px 6px",borderRadius:5 }} title="Cerrar sesiÃ³n">â©</button>
+                <button onClick={signOut} style={{ background:"none",border:"none",color:"#4b5563",cursor:"pointer",fontSize:11,fontFamily:"inherit",padding:"2px 6px",borderRadius:5 }} title="Cerrar sesión">â©</button>
               </div>
             </div>
           </div>
@@ -2086,7 +2086,7 @@ function AppInner() {
             <div>
               <div style={{ marginBottom:20 }}>
                 <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>Dashboard</h1>
-                <p style={{ color:"#374151",fontSize:13,marginTop:3 }}>Resumen general Â· FUTBOLUAGENCY</p>
+                <p style={{ color:"#374151",fontSize:13,marginTop:3 }}>Resumen general · FUTBOLUAGENCY</p>
               </div>
               <div className="g4" style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18 }}>
                 <Stat label="Atletas" value={visiblePlayers.length} sub={`${visiblePlayers.filter(p=>p.status==="Becado").length} becados`} color="#6366f1"/>
@@ -2106,7 +2106,7 @@ function AppInner() {
                           <span style={{ fontSize:14,fontWeight:700,color:"#1a1a2e" }}>{s.total}€</span>
                         </div>
                         <Bar value={s.total} max={totalColl||1} color="#6366f1"/>
-                        <div style={{ fontSize:10,color:"#374151",marginTop:3 }}>{s.p1} iniciales Â· {s.p2} segundos Â· {s.count} atletas</div>
+                        <div style={{ fontSize:10,color:"#374151",marginTop:3 }}>{s.p1} iniciales · {s.p2} segundos · {s.count} atletas</div>
                       </div>
                     ))}
                   </div>}
@@ -2121,7 +2121,7 @@ function AppInner() {
                 <Card style={{ gridColumn:"1/-1",padding:"18px 20px" }}>
                   <div style={{ fontSize:10,fontWeight:600,color:"#374151",textTransform:"uppercase",letterSpacing:1.2,marginBottom:12 }}>Pagos pendientes</div>
                   {visiblePlayers.filter(p=>!p.payment1?.paid||!p.payment2?.paid).length===0
-                    ?<div style={{ textAlign:"center",padding:16,color:"#10b981",fontWeight:600,fontSize:13 }}>â Todos al dÃ­a</div>
+                    ?<div style={{ textAlign:"center",padding:16,color:"#10b981",fontWeight:600,fontSize:13 }}>â Todos al día</div>
                     :<div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:8 }}>
                       {visiblePlayers.filter(p=>!p.payment1?.paid||!p.payment2?.paid).map(p=>(
                         <div key={p.id} onClick={()=>{ setNav("players"); setSelected(p); }} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(245,158,11,0.04)",border:"1px solid rgba(245,158,11,0.1)",borderRadius:10,cursor:"pointer" }}>
@@ -2158,7 +2158,7 @@ function AppInner() {
                   </select>
                 ))}
               </div>
-              {visiblePlayers.length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}>ð¥</div><div style={{ fontWeight:600,color:"#6b7280" }}>Sin atletas todavÃ­a</div></div>}
+              {visiblePlayers.length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}></div><div style={{ fontWeight:600,color:"#6b7280" }}>Sin atletas todavía</div></div>}
               <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
                 {filtered.map(p=>{
                   const paid=(p.payment1?.paid?(p.payment1Amount||900):0)+(p.payment2?.paid?(p.payment2Amount||1800):0);
@@ -2168,11 +2168,11 @@ function AppInner() {
                       {/* Photo only if exists, otherwise sport icon */}
                       {p.photoUrl
                         ? <Avatar name={p.name} size={40} photoUrl={p.photoUrl}/>
-                        : <div style={{ width:40,height:40,borderRadius:10,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{{ Soccer:"â½",Tennis:"ð¾",Swimming:"ð",Baseball:"â¾",Basketball:"ð","Track & Field":"ð",Golf:"â³",Volleyball:"ð" }[p.sport]||"ð"}</div>
+                        : <div style={{ width:40,height:40,borderRadius:10,background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>{{ Soccer:"â½",Tennis:"",Swimming:"",Baseball:"â¾",Basketball:"","Track & Field":"",Golf:"â³",Volleyball:"" }[p.sport]||""}</div>
                       }
                       <div style={{ flex:2,minWidth:0 }}>
                         <div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3 }}>{p.name}</div>
-                        <div style={{ fontSize:11,color:"#4b5563" }}>{p.sport}{p.nationality?` Â· ${p.nationality}`:""}{p.position&&p.position!=="N/A"?` Â· ${p.position}`:""}</div>
+                        <div style={{ fontSize:11,color:"#4b5563" }}>{p.sport}{p.nationality?` · ${p.nationality}`:""}{p.position&&p.position!=="N/A"?` · ${p.position}`:""}</div>
                       </div>
                       <Badge s={p.status}/>
                       <div style={{ display:"flex",gap:16,flexShrink:0 }}>
@@ -2205,15 +2205,15 @@ function AppInner() {
                 </div>
                 {isAdmin&&<div style={{ display:"flex",gap:8,alignItems:"center" }}>
                   <div style={{ background:"rgba(99,102,241,0.1)",border:"1px solid rgba(99,102,241,0.2)",borderRadius:9,padding:"8px 14px" }}>
-                    <span style={{ fontSize:12,color:"#818cf8",fontWeight:600 }}>ð Link del formulario:</span>
+                    <span style={{ fontSize:12,color:"#818cf8",fontWeight:600 }}> Link del formulario:</span>
                     <span style={{ fontSize:11,color:"#6b7280",marginLeft:6 }}>{window.location.origin}?form=1</span>
                     <button onClick={()=>{ navigator.clipboard.writeText(`${window.location.origin}?form=1`); }} style={{ marginLeft:8,background:"none",border:"none",color:"#6366f1",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>Copiar</button>
                   </div>
                 </div>}
               </div>
               {visibleLeads.length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}>
-                <div style={{ fontSize:36,marginBottom:10 }}>ð¯</div>
-                <div style={{ fontWeight:600,color:"#6b7280",marginBottom:6 }}>Sin leads todavÃ­a</div>
+                <div style={{ fontSize:36,marginBottom:10 }}></div>
+                <div style={{ fontWeight:600,color:"#6b7280",marginBottom:6 }}>Sin leads todavía</div>
                 <div style={{ fontSize:13,color:"#374151" }}>Comparte el link del formulario con tus prospectos</div>
               </div>}
               <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
@@ -2221,7 +2221,7 @@ function AppInner() {
                   <div key={lead.id} onClick={()=>setSelectedLead(lead)} style={{ display:"flex",alignItems:"center",gap:14,background:"#f5f0e8",border:"1px solid #e8e3db",borderRadius:14,padding:"14px 18px",cursor:"pointer",transition:"all .1s" }} className="prow">
                     {/* Sport icon */}
                     <div style={{ width:44,height:44,borderRadius:12,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0 }}>
-                      {{ Soccer:"â½",Tennis:"ð¾",Swimming:"ð",Baseball:"â¾",Basketball:"ð","Track & Field":"ð",Golf:"â³",Volleyball:"ð" }[lead.sport]||"ð¯"}
+                      {{ Soccer:"â½",Tennis:"",Swimming:"",Baseball:"â¾",Basketball:"","Track & Field":"",Golf:"â³",Volleyball:"" }[lead.sport]||""}
                     </div>
                     {/* Name + info */}
                     <div style={{ flex:1,minWidth:0 }}>
@@ -2232,10 +2232,10 @@ function AppInner() {
                         {lead.nationality&&<Tag label={lead.nationality} color="#3b82f6"/>}
                       </div>
                       <div style={{ display:"flex",gap:12,flexWrap:"wrap",fontSize:11,color:"#4b5563" }}>
-                        {lead.email&&<span>ð§ {lead.email}</span>}
-                        {lead.phone&&<span>ð± {lead.phone}</span>}
-                        {lead.referred_by&&<span>ð¤ Ref: <strong style={{ color:"#818cf8" }}>{lead.referred_by}</strong></span>}
-                        <span>ð {new Date(lead.created_at).toLocaleDateString("es-ES")}</span>
+                        {lead.email&&<span> {lead.email}</span>}
+                        {lead.phone&&<span> {lead.phone}</span>}
+                        {lead.referred_by&&<span> Ref: <strong style={{ color:"#818cf8" }}>{lead.referred_by}</strong></span>}
+                        <span> {new Date(lead.created_at).toLocaleDateString("es-ES")}</span>
                       </div>
                     </div>
                     {/* Academic quick stats */}
@@ -2245,7 +2245,7 @@ function AppInner() {
                     </div>
                     {/* Budget â highlighted */}
                     <div style={{ background:lead.budget?"rgba(16,185,129,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${lead.budget?"rgba(16,185,129,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:110,flexShrink:0 }}>
-                      <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}>ð° Budget/aÃ±o</div>
+                      <div style={{ fontSize:9,color:"#4b5563",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4,fontWeight:600 }}> Budget/año</div>
                       <div style={{ fontSize:15,fontWeight:900,color:lead.budget?"#10b981":"#4b5563" }}>{lead.budget?`$${Number(lead.budget).toLocaleString()}`:"No indicado"}</div>
                       {lead.scholarship_pct>0&&<div style={{ fontSize:10,color:"#818cf8",marginTop:3 }}>Busca {lead.scholarship_pct}% beca</div>}
                     </div>
@@ -2265,19 +2265,19 @@ function AppInner() {
                 <Stat label="Confirmadas" value={allOffers.filter(o=>o.status==="Elegida â").length} color="#10b981"/>
                 <Stat label="Negociando" value={allOffers.filter(o=>["Oferta formal","Pre-aceptada","Interesada"].includes(o.status)).length} color="#f59e0b"/>
               </div>
-              {players.filter(p=>p.offers?.length>0).length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}>ðï¸</div><div style={{ fontWeight:600,color:"#6b7280" }}>Sin ofertas</div></div>}
+              {players.filter(p=>p.offers?.length>0).length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}>ï¸</div><div style={{ fontWeight:600,color:"#6b7280" }}>Sin ofertas</div></div>}
               <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
                 {players.filter(p=>p.offers?.length>0).map(p=>(
                   <Card key={p.id} style={{ padding:"16px 18px" }}>
                     <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14 }}>
                       <Avatar name={p.name} size={38} photoUrl={p.photoUrl}/>
-                      <div><div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e" }}>{p.name}</div><div style={{ fontSize:11,color:"#4b5563" }}>{p.sport} Â· {p.offers.length} {p.offers.length===1?"oferta":"ofertas"}</div></div>
+                      <div><div style={{ fontSize:14,fontWeight:600,color:"#1a1a2e" }}>{p.name}</div><div style={{ fontSize:11,color:"#4b5563" }}>{p.sport} · {p.offers.length} {p.offers.length===1?"oferta":"ofertas"}</div></div>
                     </div>
                     <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8 }}>
                       {p.offers.sort((a,b)=>(b.amount||0)-(a.amount||0)).map(o=>(
                         <div key={o.id} onClick={()=>{ setNav("players"); setSelected(p); }} style={{ background:o.status==="Elegida â"?"rgba(34,197,94,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${o.status==="Elegida â"?"rgba(34,197,94,0.15)":"rgba(255,255,255,0.05)"}`,borderRadius:10,padding:"12px",cursor:"pointer" }}>
                           <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:7 }}><UniLogo name={o.university} logoUrl={o.logoUrl} size={26}/><div style={{ fontSize:12,fontWeight:600,color:"#1a1a2e",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{o.university}</div></div>
-                          <div style={{ fontSize:10,color:"#6b7280",marginBottom:6 }}>{o.state} Â· {o.division}</div>
+                          <div style={{ fontSize:10,color:"#6b7280",marginBottom:6 }}>{o.state} · {o.division}</div>
                           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:6 }}>
                             <div>{o.amount&&<div style={{ fontSize:13,fontWeight:700,color:"#10b981" }}>{Number(o.amount).toLocaleString()}€</div>}{o.season&&<div style={{ fontSize:10,color:"#f59e0b" }}>{o.season}</div>}</div>
                             <OBadge s={o.status}/>
@@ -2362,7 +2362,7 @@ function AppInner() {
                     <div key={dept.sport} style={{ background:"#fff",border:"1px solid #e8e3db",borderRadius:14,padding:"20px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
                       <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14 }}>
                         <div style={{ width:44,height:44,borderRadius:12,background:`${dept.color}15`,border:`1px solid ${dept.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20 }}>
-                          {{ Soccer:"â½",Tennis:"ð¾",Swimming:"ð",Baseball:"â¾",Basketball:"ð","Track & Field":"ð",Golf:"â³",Volleyball:"ð" }[dept.sport]||"ð"}
+                          {{ Soccer:"â½",Tennis:"",Swimming:"",Baseball:"â¾",Basketball:"","Track & Field":"",Golf:"â³",Volleyball:"" }[dept.sport]||""}
                         </div>
                         <div>
                           <div style={{ fontSize:15,fontWeight:700,color:"#1a1a2e" }}>FUA Sports â {dept.sport}</div>
@@ -2384,7 +2384,7 @@ function AppInner() {
                           <Avatar name={p.name} size={28} photoUrl={p.photoUrl}/>
                           <div style={{ flex:1,minWidth:0 }}>
                             <div style={{ fontSize:12,fontWeight:600,color:"#1a1a2e",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.name}</div>
-                            <div style={{ fontSize:10,color:"#9ca3af" }}>{p.status} Â· {p.nationality}</div>
+                            <div style={{ fontSize:10,color:"#9ca3af" }}>{p.status} · {p.nationality}</div>
                           </div>
                         </div>
                       ))}
@@ -2466,7 +2466,7 @@ function AppInner() {
                             <Avatar name={p.name} size={22} photoUrl={p.photoUrl}/>
                             <div>
                               <div style={{ fontSize:12,fontWeight:600,color:"#1a1a2e" }}>{p.name}</div>
-                              <div style={{ fontSize:10,color:"#9ca3af" }}>{p.sport} Â· {p.status}</div>
+                              <div style={{ fontSize:10,color:"#9ca3af" }}>{p.sport} · {p.status}</div>
                             </div>
                           </div>
                         ))}
@@ -2483,7 +2483,7 @@ function AppInner() {
           {nav==="team"&&(
             <div>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10 }}>
-                <div><h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>Equipo</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>CEOs y Reclutadores Â· {agents.length} miembros</p></div>
+                <div><h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>Equipo</h1><p style={{ color:"#374151",fontSize:13,marginTop:3 }}>CEOs y Reclutadores · {agents.length} miembros</p></div>
                 {isAdmin&&<button onClick={()=>setAgentModal("new")} style={{ display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:9,border:"none",background:"#1a1a2e",color:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>{I.plus} Nuevo miembro</button>}
               </div>
 
@@ -2542,7 +2542,7 @@ function AppInner() {
                 </Card>
               )}
 
-              {agents.length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}>ð¥</div><div style={{ fontWeight:600,color:"#6b7280",marginBottom:6 }}>Sin agentes</div><div style={{ fontSize:13 }}>AÃ±ade a Moha e Ignacio primero</div></div>}
+              {agents.length===0&&<div style={{ textAlign:"center",padding:60,color:"#374151" }}><div style={{ fontSize:32,marginBottom:10 }}></div><div style={{ fontWeight:600,color:"#6b7280",marginBottom:6 }}>Sin agentes</div><div style={{ fontSize:13 }}>Añade a Moha e Ignacio primero</div></div>}
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12 }}>
                 {agents.map(agent=>{ const s=agentStats.find(x=>x.name===agent.name)||{total:0,p1:0,p2:0,count:0}; return (
                   <Card key={agent.id} style={{ padding:"18px 20px",border:"1px solid #ede8e0" }}>
@@ -2577,7 +2577,7 @@ function AppInner() {
           {nav==="earnings"&&(
             <div>
               <div style={{ marginBottom:20 }}>
-                <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}>ð¸ {isAdmin?"Ganancias por Reclutador":"Mis Ganancias"}</h1>
+                <h1 style={{ fontSize:22,fontWeight:700,color:"#1a1a2e",letterSpacing:-0.3 }}> {isAdmin?"Ganancias por Reclutador":"Mis Ganancias"}</h1>
                 <p style={{ color:"#374151",fontSize:13,marginTop:3 }}>{isAdmin?"Gestiona las comisiones de cada reclutador":"Tu resumen de comisiones"}</p>
               </div>
 
@@ -2616,7 +2616,7 @@ function AppInner() {
               <div style={{ display:"flex",flexDirection:"column",gap:8,marginTop:14 }}>
                 <div style={{ fontSize:11,fontWeight:700,color:"#4b5563",textTransform:"uppercase",letterSpacing:1.2,marginBottom:8 }}>Detalle por atleta</div>
                 {commissions.filter(c=>isAdmin||(c.referred_by===profile?.name||c.referred_by===profile?.email)).length===0&&
-                  <div style={{ textAlign:"center",padding:40,color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}>ð¸</div><div>Sin ganancias registradas</div></div>}
+                  <div style={{ textAlign:"center",padding:40,color:"#4b5563" }}><div style={{ fontSize:28,marginBottom:8 }}></div><div>Sin ganancias registradas</div></div>}
                 {commissions.filter(c=>isAdmin||(c.referred_by===profile?.name||c.referred_by===profile?.email)).map(c=>{
                   const p=players.find(x=>x.id===c.player_id);
                   return (
@@ -2625,8 +2625,8 @@ function AppInner() {
                         <div style={{ fontSize:13,fontWeight:600,color:"#1a1a2e",marginBottom:3 }}>{p?.name||"â"}</div>
                         <div style={{ fontSize:11,color:"#4b5563" }}>
                           Reclutador: <span style={{ color:"#818cf8",fontWeight:600 }}>{c.referred_by||"â"}</span>
-                          {c.percentage>0&&<span> Â· {c.percentage}% del total</span>}
-                          {c.notes&&<span style={{ fontStyle:"italic" }}> Â· {c.notes}</span>}
+                          {c.percentage>0&&<span> · {c.percentage}% del total</span>}
+                          {c.notes&&<span style={{ fontStyle:"italic" }}> · {c.notes}</span>}
                         </div>
                       </div>
                       <div style={{ textAlign:"right" }}>
@@ -2635,7 +2635,7 @@ function AppInner() {
                       </div>
                       {isAdmin&&<div style={{ display:"flex",flexDirection:"column",gap:5 }}>
                         {!c.paid&&<button onClick={async()=>{ await saveCommission({...c,paid:true,paid_date:new Date().toISOString().split("T")[0]}); }} style={{ padding:"5px 10px",borderRadius:7,border:"none",background:"rgba(16,185,129,0.15)",color:"#10b981",cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit" }}>â Pagar</button>}
-                        <button onClick={async()=>{ if(window.confirm("Â¿Eliminar?")) await deleteCommission(c.id); }} style={{ padding:"5px 10px",borderRadius:7,border:"1px solid rgba(239,68,68,0.15)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>â</button>
+                        <button onClick={async()=>{ if(window.confirm("¿Eliminar?")) await deleteCommission(c.id); }} style={{ padding:"5px 10px",borderRadius:7,border:"1px solid rgba(239,68,68,0.15)",background:"none",color:"#ef4444",cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>â</button>
                       </div>}
                     </div>
                   );

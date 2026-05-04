@@ -859,172 +859,297 @@ const AgentLinkRow = ({ agent, link, IcCopy }) => {
 // âââ MAIN APP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // âââ PUBLIC PLAYER PAGE (for coaches) ââââââââââââââââââââââââââââââââââââââââ
 // âââ PUBLIC LEAD FORM âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── PUBLIC LEAD FORM ──────────────────────────────────────────────────────────
 const LeadForm = () => {
-  const SPORTS_LIST = ["Soccer","Tennis","Golf","Volleyball","Track & Field"];
-  const [step, setStep] = useState(1); // 3 steps
-  const [form, setForm] = useState({ name:"",email:"",phone:"",nationality:"",age:"",instagram:"",referred_by:"",sport:"Soccer",position:"",height:"",weight:"",video_url:"",gpa:"",english_level:"B2",graduation_year:"",major:"",budget:"",scholarship_pct:"",notes:"" });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const POSITIONS_LIST = ['Portero','Defensa Central','Lateral Derecho','Lateral Izquierdo','Mediocentro Defensivo','Mediocentro','Mediocentro Ofensivo','Extremo Derecho','Extremo Izquierdo','Delantero Centro','Segundo Delantero'];
+  const SPORTS_LIST = ['Soccer','Basketball','Tennis','Swimming','Track & Field','Other'];
+  const ENGLISH_LEVELS = ['Basico (A1-A2)','Intermedio (B1-B2)','Avanzado (C1-C2)','Nativo'];
+  const NATIONALITIES = ['Espana','Mexico','Argentina','Colombia','Brasil','Venezuela','Chile','Peru','Ecuador','Bolivia','Paraguay','Uruguay','Costa Rica','Guatemala','Honduras','El Salvador','Nicaragua','Panama','Rep. Dominicana','Cuba','Puerto Rico','Otra'];
 
-  const inp = { background:"#fff", border:"1px solid #e5e0d8", borderRadius:10, padding:"12px 16px", color:"#1a1a2e", fontSize:15, outline:"none", width:"100%", boxSizing:"border-box", fontFamily:"inherit" };
-  const lbl = { fontSize:12, fontWeight:600, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.8, marginBottom:6, display:"block" };
-
-  const submit = async () => {
-    if(!form.name.trim()||!form.email.trim()) { setError("Nombre y email son obligatorios."); return; }
-    setSubmitting(true); setError("");
-    try {
-    const payload = {
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone||null,
-      nationality: form.nationality||null,
-      age: parseInt(form.age)||null,
-      sport: form.sport,
-      position: form.position||null,
-      height: parseFloat(form.height)||null,
-      weight: parseFloat(form.weight)||null,
-      gpa: parseFloat(form.gpa)||null,
-      english_level: form.english_level||null,
-      graduation_year: parseInt(form.graduation_year)||null,
-      major: form.major||null,
-      scholarship_pct: parseInt(form.scholarship_pct)||null,
-      budget: parseFloat(form.budget)||null,
-      video_url: form.video_url||null,
-      instagram: form.instagram||null,
-      notes: form.notes||null,
-      referred_by: form.referred_by||null,
-    };
-    const { error:err } = await supabase.from("leads").insert(payload);
-    if(err) { setError(`Error: ${err.message}`); return; }
-    // Notify CEO by email in background
-    fetch("/api/send-email", { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ type:"calendar_invite", to:"futboluagency@gmail.com", eventTitle:`Nuevo lead: ${form.name}`, eventDate:new Date().toISOString().split("T")[0], body:`Deporte: ${form.sport}\nNacionalidad: ${form.nationality||"â"}\nEmail: ${form.email}\nReferido por: ${form.referred_by||"â"}`, senderName:"Formulario web" })
-    }).catch(()=>{});
-    setSubmitted(true);
-    } catch(e) {
-      setError("Error al enviar la solicitud. Inténtalo de nuevo.");
-      console.error("Submit error:", e);
-    } finally {
-      setSubmitting(false);
-    }
+  const EMPTY = {
+    name:'', email:'', phone:'', nationality:'Espana',
+    age:'', sport:'Soccer', position:'',
+    gpa:'', english_level:'', graduation_year:'',
+    major:'', video_url:'', instagram:'', notes:'',
+    current_university:'', transfer_reason:'',
+    scholarship_pct:'', budget:''
   };
 
-  if(submitted) return (
-    <div style={{ fontFamily:"'Inter',system-ui,sans-serif", background:"#f5f0e8", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div style={{ textAlign:"center", maxWidth:440, background:"#fff", borderRadius:20, padding:"40px 32px", boxShadow:"0 4px 24px rgba(0,0,0,0.08)" }}>
-        <div style={{ width:72, height:72, borderRadius:"50%", background:"linear-gradient(135deg,#6366f1,#10b981)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, margin:"0 auto 20px" }}>â</div>
-        <h2 style={{ fontSize:24, fontWeight:800, color:"#1a1a2e", marginBottom:10 }}>Solicitud recibida</h2>
-        <p style={{ fontSize:15, color:"#6b7280", lineHeight:1.7, marginBottom:24 }}>Hemos recibido tu perfil. Nuestro equipo lo revisara y se pondra en contacto contigo pronto.</p>
-        <div style={{ background:"#f9f7f4", border:"1px solid #e8e3db", borderRadius:12, padding:"16px 20px" }}>
-          <div style={{ fontSize:13, color:"#374151", fontWeight:600 }}>futboluagency@gmail.com</div>
-          <div style={{ fontSize:13, color:"#374151", fontWeight:600, marginTop:4 }}>WhatsApp: +34 603 331 990</div>
+  const [tipo, setTipo] = useState(null);
+  const [form, setForm] = useState(EMPTY);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
+
+  const buildNotes = () => {
+    const parts = [];
+    if (tipo === 'transfer') {
+      parts.push('[TRANSFER]');
+      if (form.current_university) parts.push('Universidad actual: ' + form.current_university);
+      if (form.transfer_reason) parts.push('Motivo transfer: ' + form.transfer_reason);
+    } else {
+      parts.push('[NUEVO]');
+    }
+    if (form.notes) parts.push(form.notes);
+    return parts.join('\n') || null;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!tipo) { setError('Por favor selecciona si eres Atleta Transfer o Jugador Nuevo.'); return; }
+    if (!form.name.trim()) { setError('El nombre completo es obligatorio.'); return; }
+    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError('Introduce un email valido.'); return;
+    }
+    setSubmitting(true);
+    const payload = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim() || null,
+      nationality: form.nationality || null,
+      age: parseInt(form.age) || null,
+      sport: form.sport || null,
+      position: form.position || null,
+      gpa: parseFloat(form.gpa) || null,
+      english_level: form.english_level || null,
+      graduation_year: parseInt(form.graduation_year) || null,
+      major: form.major.trim() || null,
+      video_url: form.video_url.trim() || null,
+      instagram: form.instagram.trim() || null,
+      notes: buildNotes(),
+      status: 'new',
+      referred_by: null,
+      scholarship_pct: parseInt(form.scholarship_pct) || null,
+      budget: parseFloat(form.budget) || null,
+    };
+    let saved = false;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const { error: err } = await supabase.from('leads').insert(payload);
+        if (!err) { saved = true; break; }
+        lastErr = err;
+      } catch(ex) { lastErr = ex; }
+      if (attempt < 3) await new Promise(r => setTimeout(r, 800 * attempt));
+    }
+    setSubmitting(false);
+    if (!saved) {
+      setError('Error al guardar. Intentalo de nuevo. (' + (lastErr?.message || 'Sin conexion') + ')');
+      return;
+    }
+    setDone(true);
+  };
+
+  const css = `
+    .lf-wrap{min-height:100vh;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+    .lf-card{background:#fff;border-radius:20px;width:100%;max-width:580px;box-shadow:0 25px 60px rgba(0,0,0,.3);overflow:hidden}
+    .lf-head{background:linear-gradient(135deg,#8B0000,#c0392b);padding:30px 28px 26px;text-align:center;color:#fff}
+    .lf-logo{width:68px;height:68px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:30px;border:3px solid rgba(255,255,255,.35)}
+    .lf-title{font-size:21px;font-weight:700;margin-bottom:5px}
+    .lf-sub{font-size:13px;opacity:.85}
+    .lf-body{padding:26px}
+    .lf-type-lbl{font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+    .lf-types{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+    .lf-tb{border:2px solid #e0e0e0;border-radius:12px;padding:14px 10px;background:#fff;cursor:pointer;text-align:center;transition:all .2s}
+    .lf-tb:hover{border-color:#8B0000;background:#fff5f5}
+    .lf-tb.on{border-color:#8B0000;background:linear-gradient(135deg,#fff0f0,#ffe8e8);box-shadow:0 4px 12px rgba(139,0,0,.15)}
+    .lf-ti{font-size:26px;margin-bottom:6px}
+    .lf-tn{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:3px}
+    .lf-td{font-size:11px;color:#999;line-height:1.4}
+    .lf-sec{margin-bottom:18px}
+    .lf-sh{font-size:11px;font-weight:700;color:#8B0000;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:5px;border-bottom:2px solid #f5e6e6}
+    .lf-g{display:grid;gap:12px}
+    .lf-g2{grid-template-columns:1fr 1fr}
+    .lf-g3{grid-template-columns:1fr 1fr 1fr}
+    .lf-f label{display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:4px}
+    .lf-f input,.lf-f select,.lf-f textarea{width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;color:#1a1a2e;background:#fafafa;outline:none;transition:border-color .2s;font-family:inherit}
+    .lf-f input:focus,.lf-f select:focus,.lf-f textarea:focus{border-color:#8B0000;background:#fff;box-shadow:0 0 0 3px rgba(139,0,0,.07)}
+    .lf-f textarea{resize:vertical;min-height:76px}
+    .lf-req{color:#e74c3c;margin-left:2px}
+    .lf-err{background:#fff0f0;border:1.5px solid #f8b4b4;border-radius:10px;padding:11px 14px;margin-bottom:16px;color:#c0392b;font-size:13px;font-weight:500}
+    .lf-btn{width:100%;padding:14px;background:linear-gradient(135deg,#8B0000,#c0392b);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.2px;margin-top:4px}
+    .lf-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(139,0,0,.35)}
+    .lf-btn:disabled{opacity:.6;cursor:not-allowed}
+    .lf-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:lfsp .7s linear infinite;margin-right:7px;vertical-align:middle}
+    @keyframes lfsp{to{transform:rotate(360deg)}}
+    .lf-ok{text-align:center;padding:36px 28px}
+    .lf-ok-ic{width:76px;height:76px;background:linear-gradient(135deg,#27ae60,#2ecc71);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:36px}
+    .lf-ok-t{font-size:21px;font-weight:700;color:#1a1a2e;margin-bottom:8px}
+    .lf-ok-m{font-size:14px;color:#555;line-height:1.6;margin-bottom:22px}
+    .lf-ok-b{display:inline-block;padding:11px 26px;background:linear-gradient(135deg,#8B0000,#c0392b);color:#fff;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+    .lf-ok-b:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(139,0,0,.3)}
+    .lf-foot{text-align:center;padding:12px 28px 18px;color:#bbb;font-size:11px}
+    @media(max-width:500px){.lf-g2,.lf-g3{grid-template-columns:1fr}.lf-types{grid-template-columns:1fr}.lf-body{padding:18px}.lf-head{padding:22px 18px 20px}}
+  `;
+
+  if (done) return (
+    <div className="lf-wrap">
+      <style>{css}</style>
+      <div className="lf-card">
+        <div className="lf-head">
+          <div className="lf-logo">&#9917;</div>
+          <div className="lf-title">FutbolU Agency</div>
         </div>
+        <div className="lf-ok">
+          <div className="lf-ok-ic">&#10003;</div>
+          <div className="lf-ok-t">Solicitud enviada</div>
+          <div className="lf-ok-m">Hemos recibido tu informacion, <strong>{form.name.split(' ')[0]}</strong>.<br/>Un reclutador de FutbolU te contactara en las proximas 48 horas.</div>
+          <button className="lf-ok-b" onClick={() => { setDone(false); setTipo(null); setForm(EMPTY); }}>Enviar otra solicitud</button>
+        </div>
+        <div className="lf-foot">FutbolU Agency · futboluagency@gmail.com</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ fontFamily:"'Inter',system-ui,sans-serif", background:"#f5f0e8", minHeight:"100vh" }}>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}input,select,textarea{font-family:inherit}`}</style>
-
-      {/* Header */}
-      <div style={{ background:"#fff", borderBottom:"1px solid #e8e3db", padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10 }}>
-        <img src="/logo.png" alt="FUTBOLUAGENCY" onError={e=>e.target.style.display="none"} style={{ height:30, objectFit:"contain" }}/>
-        <div style={{ fontSize:12, color:"#9ca3af", fontWeight:500 }}>Solicitud de beca deportiva</div>
-      </div>
-
-      <div style={{ maxWidth:560, margin:"0 auto", padding:"32px 20px 80px" }}>
-        {/* Title */}
-        <div style={{ textAlign:"center", marginBottom:28 }}>
-          <h1 style={{ fontSize:26, fontWeight:800, color:"#1a1a2e", letterSpacing:-0.5, marginBottom:8 }}>Solicita tu beca deportiva</h1>
-          <p style={{ fontSize:14, color:"#6b7280", lineHeight:1.6 }}>Rellena el formulario y evaluamos tu perfil gratuitamente</p>
+    <div className="lf-wrap">
+      <style>{css}</style>
+      <div className="lf-card">
+        <div className="lf-head">
+          <div className="lf-logo">&#9917;</div>
+          <div className="lf-title">FutbolU Agency</div>
+          <div className="lf-sub">Becas universitarias en USA · Completa tu perfil</div>
         </div>
-
-        {/* Progress */}
-        <div style={{ display:"flex", gap:8, marginBottom:28 }}>
-          {[1,2,3].map(s=>(
-            <div key={s} style={{ flex:1, height:4, borderRadius:99, background:step>=s?"#6366f1":"#e8e3db", transition:"background .3s" }}/>
-          ))}
-        </div>
-        <div style={{ textAlign:"center", fontSize:12, color:"#9ca3af", marginBottom:24, fontWeight:600 }}>
-          Paso {step} de 3 â {["Datos personales","Perfil deportivo","Estudios y expectativas"][step-1]}
-        </div>
-
-        <div style={{ background:"#fff", borderRadius:16, padding:"28px 24px", boxShadow:"0 1px 8px rgba(0,0,0,0.06)", border:"1px solid #e8e3db" }}>
-
-          {/* STEP 1 â Personal */}
-          {step===1&&<div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>Datos personales</div>
-            <div><label style={lbl}>Nombre completo *</label><input style={inp} value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Juan Garcia"/></div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              <div><label style={lbl}>Email *</label><input style={inp} type="email" value={form.email} onChange={e=>set("email",e.target.value)} placeholder="juan@gmail.com"/></div>
-              <div><label style={lbl}>WhatsApp</label><input style={inp} value={form.phone} onChange={e=>set("phone",e.target.value)} placeholder="+34 ..."/></div>
-              <div><label style={lbl}>Nacionalidad</label><input style={inp} value={form.nationality} onChange={e=>set("nationality",e.target.value)} placeholder="Colombiano, Espanol..."/></div>
-              <div><label style={lbl}>Edad</label><input style={inp} type="number" value={form.age} onChange={e=>set("age",e.target.value)} placeholder="18"/></div>
-            </div>
-            <div><label style={lbl}>Instagram</label><input style={inp} value={form.instagram} onChange={e=>set("instagram",e.target.value)} placeholder="@usuario"/></div>
-            <div><label style={lbl}>Referido por (agente)</label><input style={inp} value={form.referred_by} onChange={e=>set("referred_by",e.target.value)} placeholder="Nombre del agente que te contacto"/></div>
-          </div>}
-
-          {/* STEP 2 â Athletic */}
-          {step===2&&<div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>Perfil deportivo</div>
-            <div>
-              <label style={lbl}>Deporte *</label>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>
-                {SPORTS_LIST.map(s=>(
-                  <div key={s} onClick={()=>set("sport",s)} style={{ padding:"12px 6px", borderRadius:10, border:`2px solid ${form.sport===s?"#6366f1":"#e8e3db"}`, background:form.sport===s?"rgba(99,102,241,0.06)":"#f9f7f4", cursor:"pointer", textAlign:"center" }}>
-                    <div style={{ fontSize:22, marginBottom:4 }}>{{ Soccer:"â½", Tennis:"", Golf:"â³", Volleyball:"", "Track & Field":"" }[s]}</div>
-                    <div style={{ fontSize:10, fontWeight:600, color:form.sport===s?"#6366f1":"#9ca3af" }}>{s}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              <div><label style={lbl}>Posicion / Especialidad</label><input style={inp} value={form.position} onChange={e=>set("position",e.target.value)} placeholder="Delantero, Backhand..."/></div>
-              <div><label style={lbl}>Altura (cm)</label><input style={inp} type="number" value={form.height} onChange={e=>set("height",e.target.value)} placeholder="178"/></div>
-            </div>
-            <div><label style={lbl}>Video highlight (YouTube / Drive)</label><input style={inp} value={form.video_url} onChange={e=>set("video_url",e.target.value)} placeholder="https://youtube.com/..."/></div>
-          </div>}
-
-          {/* STEP 3 â Academic */}
-          {step===3&&<div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>Estudios y expectativas</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              <div><label style={lbl}>GPA (nota media)</label><input style={inp} type="number" step="0.1" value={form.gpa} onChange={e=>set("gpa",e.target.value)} placeholder="3.5"/></div>
-              <div><label style={lbl}>Nivel de ingles</label>
-                <select style={{ ...inp, cursor:"pointer" }} value={form.english_level} onChange={e=>set("english_level",e.target.value)}>
-                  {["A1","A2","B1","B2","C1","C2","Native"].map(l=><option key={l}>{l}</option>)}
-                </select>
-              </div>
-              <div><label style={lbl}>Año de graduacion</label><input style={inp} type="number" value={form.graduation_year} onChange={e=>set("graduation_year",e.target.value)} placeholder="2025"/></div>
-              <div><label style={lbl}>Carrera deseada</label><input style={inp} value={form.major} onChange={e=>set("major",e.target.value)} placeholder="Business, Marketing..."/></div>
-              <div><label style={lbl}>Beca buscada (%)</label><input style={inp} type="number" value={form.scholarship_pct} onChange={e=>set("scholarship_pct",e.target.value)} placeholder="50"/></div>
-              <div><label style={lbl}>Presupuesto anual max (USD)</label><input style={inp} type="number" value={form.budget} onChange={e=>set("budget",e.target.value)} placeholder="25000"/></div>
-            </div>
-            <div><label style={lbl}>Algo mas que quieras contarnos</label><textarea style={{ ...inp, minHeight:80, resize:"vertical" }} value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder="Logros deportivos, objetivos, preguntas..."/></div>
-            {error&&<div style={{ padding:"12px 16px", background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:10, fontSize:13, color:"#ef4444" }}>{error}</div>}
-          </div>}
-
-          {/* Navigation */}
-          <div style={{ display:"flex", gap:10, marginTop:24 }}>
-            {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{ flex:1, padding:"13px", borderRadius:10, border:"1px solid #e8e3db", background:"#fff", color:"#374151", cursor:"pointer", fontSize:14, fontWeight:600, fontFamily:"inherit" }}>Atras</button>}
-            {step<3
-              ? <button onClick={()=>{ if(step===1&&(!form.name.trim()||!form.email.trim())){ setError("Nombre y email son obligatorios"); return; } setError(""); setStep(s=>s+1); }} style={{ flex:2, padding:"13px", borderRadius:10, border:"none", background:"#1a1a2e", color:"#fff", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"inherit" }}>Siguiente</button>
-              : <button onClick={submit} disabled={submitting} style={{ flex:2, padding:"13px", borderRadius:10, border:"none", background:submitting?"#9ca3af":"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", cursor:submitting?"default":"pointer", fontSize:14, fontWeight:700, fontFamily:"inherit" }}>{submitting?"Enviando...":"Enviar solicitud"}</button>
-            }
+        <form className="lf-body" onSubmit={handleSubmit} noValidate>
+          <div className="lf-type-lbl">Tu situacion</div>
+          <div className="lf-types">
+            <button type="button" className={'lf-tb' + (tipo==='transfer'?' on':'')} onClick={() => setTipo('transfer')}>
+              <div className="lf-ti">&#128260;</div>
+              <div className="lf-tn">Atleta Transfer</div>
+              <div className="lf-td">Ya estas en una universidad y quieres transferirte</div>
+            </button>
+            <button type="button" className={'lf-tb' + (tipo==='nuevo'?' on':'')} onClick={() => setTipo('nuevo')}>
+              <div className="lf-ti">&#11088;</div>
+              <div className="lf-tn">Jugador Nuevo</div>
+              <div className="lf-td">Buscas tu primera beca universitaria en USA</div>
+            </button>
           </div>
-        </div>
-
-        <div style={{ textAlign:"center", marginTop:20, fontSize:12, color:"#9ca3af" }}>
-          ¿Preguntas? <strong style={{ color:"#374151" }}>futboluagency@gmail.com</strong> · WhatsApp <strong style={{ color:"#374151" }}>+34 603 331 990</strong>
-        </div>
+          {error && <div className="lf-err">&#9888; {error}</div>}
+          <div className="lf-sec">
+            <div className="lf-sh">Datos Personales</div>
+            <div className="lf-g">
+              <div className="lf-f">
+                <label>Nombre Completo <span className="lf-req">*</span></label>
+                <input type="text" value={form.name} onChange={e=>set('name',e.target.value)} placeholder="Tu nombre completo" />
+              </div>
+              <div className="lf-g lf-g2">
+                <div className="lf-f">
+                  <label>Email <span className="lf-req">*</span></label>
+                  <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="tu@email.com" />
+                </div>
+                <div className="lf-f">
+                  <label>Telefono / WhatsApp</label>
+                  <input type="tel" value={form.phone} onChange={e=>set('phone',e.target.value)} placeholder="+34 600 000 000" />
+                </div>
+              </div>
+              <div className="lf-g lf-g3">
+                <div className="lf-f">
+                  <label>Edad</label>
+                  <input type="number" min="14" max="30" value={form.age} onChange={e=>set('age',e.target.value)} placeholder="18" />
+                </div>
+                <div className="lf-f">
+                  <label>Nacionalidad</label>
+                  <select value={form.nationality} onChange={e=>set('nationality',e.target.value)}>
+                    {NATIONALITIES.map(n=><option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div className="lf-f">
+                  <label>Instagram</label>
+                  <input type="text" value={form.instagram} onChange={e=>set('instagram',e.target.value)} placeholder="@usuario" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="lf-sec">
+            <div className="lf-sh">Perfil Deportivo</div>
+            <div className="lf-g">
+              <div className="lf-g lf-g2">
+                <div className="lf-f">
+                  <label>Deporte</label>
+                  <select value={form.sport} onChange={e=>set('sport',e.target.value)}>
+                    {SPORTS_LIST.map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="lf-f">
+                  <label>Posicion</label>
+                  <select value={form.position} onChange={e=>set('position',e.target.value)}>
+                    <option value="">Seleccionar...</option>
+                    {POSITIONS_LIST.map(p=><option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="lf-f">
+                <label>Video (YouTube / Drive / Hudl)</label>
+                <input type="url" value={form.video_url} onChange={e=>set('video_url',e.target.value)} placeholder="https://youtube.com/..." />
+              </div>
+            </div>
+          </div>
+          <div className="lf-sec">
+            <div className="lf-sh">Perfil Academico</div>
+            <div className="lf-g">
+              <div className="lf-g lf-g3">
+                <div className="lf-f">
+                  <label>GPA (0.0 - 4.0)</label>
+                  <input type="number" min="0" max="4" step="0.01" value={form.gpa} onChange={e=>set('gpa',e.target.value)} placeholder="3.5" />
+                </div>
+                <div className="lf-f">
+                  <label>Ano graduacion</label>
+                  <input type="number" min="2024" max="2030" value={form.graduation_year} onChange={e=>set('graduation_year',e.target.value)} placeholder="2026" />
+                </div>
+                <div className="lf-f">
+                  <label>Nivel ingles</label>
+                  <select value={form.english_level} onChange={e=>set('english_level',e.target.value)}>
+                    <option value="">Nivel...</option>
+                    {ENGLISH_LEVELS.map(l=><option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="lf-g lf-g2">
+                <div className="lf-f">
+                  <label>Carrera de interes</label>
+                  <input type="text" value={form.major} onChange={e=>set('major',e.target.value)} placeholder="Business Administration" />
+                </div>
+                <div className="lf-f">
+                  <label>Beca objetivo (%)</label>
+                  <input type="number" min="0" max="100" value={form.scholarship_pct} onChange={e=>set('scholarship_pct',e.target.value)} placeholder="75" />
+                </div>
+              </div>
+            </div>
+          </div>
+          {tipo==='transfer' && (
+            <div className="lf-sec">
+              <div className="lf-sh">Informacion de Transfer</div>
+              <div className="lf-g">
+                <div className="lf-f">
+                  <label>Universidad actual</label>
+                  <input type="text" value={form.current_university} onChange={e=>set('current_university',e.target.value)} placeholder="Nombre de tu universidad" />
+                </div>
+                <div className="lf-f">
+                  <label>Motivo del transfer</label>
+                  <textarea value={form.transfer_reason} onChange={e=>set('transfer_reason',e.target.value)} placeholder="Por que quieres transferirte?" rows={3} />
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="lf-sec">
+            <div className="lf-sh">Mensaje adicional (opcional)</div>
+            <div className="lf-f">
+              <textarea value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Cuentanos sobre ti, tus logros, tus objetivos..." rows={3} />
+            </div>
+          </div>
+          <button type="submit" className="lf-btn" disabled={submitting}>
+            {submitting ? <span><span className="lf-spin"></span>Guardando...</span> : 'Enviar Solicitud'}
+          </button>
+        </form>
+        <div className="lf-foot">FutbolU Agency · futboluagency@gmail.com</div>
       </div>
     </div>
   );
 };
+
 
 
 const PublicPlayerPage = ({ playerId }) => {
